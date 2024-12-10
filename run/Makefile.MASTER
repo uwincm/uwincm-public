@@ -1,0 +1,121 @@
+WRF_VERSION = 3.9
+
+UWINCM_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides/uwincm
+PREPROC_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides
+WPS_PATH := $(PREPROC_PATH)/wps
+HYCOM_DOMAIN_PATH := $(PREPROC_PATH)/hycom_domain
+RUN_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides/uwincm/run
+
+
+WRF_PATH := $(UWINCM_PATH)/src/components/WRFV$(WRF_VERSION)
+UMWM_PATH := $(UWINCM_PATH)/src/components/umwm
+
+
+.PHONY: help
+help:
+	@echo ""
+	@echo "!!! Set paths in top of Makefile first !!!"
+	@echo "make options for run directory:"
+	@echo ""
+	@echo "make help                  -- Display this help message."
+	@echo "make link_wrf              -- Link WRF directory stuff."
+	@echo "make link_wps              -- Copy WPS stuff."
+	@echo "make link_hycom-domain     -- Copy HYCOM input stuff."
+	@echo "make link_hycom_tides      -- Copy HYCOM tidal forcing."
+	@echo "make link_umwm             -- UMWM input stuff."
+	@echo "make link_uwin             -- UWINCM model setup stuff."
+	@echo "make clean_run             -- Cleans the model output."
+	@echo ""
+
+
+link_wrf:
+	cp $(WRF_PATH)/run/namelist.input $(RUN_PATH)/.
+	mv namelist.input namelist.input.ori
+	ln -sf $(WRF_PATH)/run/GENPARM.TBL $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/LANDUSE.TBL $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/MPTABLE.TBL $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/SOILPARM.TBL $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/VEGPARM.TBL $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/RRTM_DATA* $(RUN_PATH)/.
+	ln -sf $(WRF_PATH)/run/real.exe $(RUN_PATH)/.
+
+link_wps:
+	ln -sf $(WPS_PATH)/met*.nc $(RUN_PATH)/.
+	ln -sf $(WPS_PATH)/geo_em*.nc $(RUN_PATH)/.
+	cp $(WPS_PATH)/namelist.wps $(RUN_PATH)/.
+
+
+link_hycom-domain:
+	mkdir -p $(RUN_PATH)/nest
+	echo 'Copy HYCOM boundary condition files to nest/' 
+	cp -n blkdat.input.MASTER blkdat.input
+	cp $(HYCOM_DOMAIN_PATH)/restart/restart_in.* $(RUN_PATH)/.
+	./cpfile.sh $(HYCOM_DOMAIN_PATH)/subregion/subregion
+	cp $(HYCOM_DOMAIN_PATH)/subregion/subregion/regional.* $(RUN_PATH)/.
+	ln -sf $(HYCOM_DOMAIN_PATH)/run/patch.input $(RUN_PATH)/.
+	cp $(HYCOM_DOMAIN_PATH)/relax/rmu.* $(RUN_PATH)/nest/.
+	cp $(HYCOM_DOMAIN_PATH)/seawifs/forcing.kpar* $(RUN_PATH)/.
+	cp $(HYCOM_DOMAIN_PATH)/rivers/forcing.rivers* $(RUN_PATH)/.
+	cp $(HYCOM_DOMAIN_PATH)/sub_topo/ports.input $(RUN_PATH)/.
+	echo 'Make sure ports.input is OK.'
+
+
+link_hycom_tides:
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/SAL/tpxo8a_sal_ReIm_10.a ./tidal.salReIm.a
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/SAL/tpxo8a_sal_ReIm_10.b ./tidal.salReIm.b
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/ports/ports_?.input .
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/drag/tidal.JSLH.10.lim24.a ./tidal.rh.a
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/drag/tidal.JSLH.10.lim24.b ./tidal.rh.b
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/drag/cb_02_10mm.a ./cb.a
+	ln -sf $(HYCOM_DOMAIN_PATH)/tide_forcing/drag/cb_02_10mm.b ./cb.b
+
+
+link_umwm:
+	mkdir restart
+	mkdir input
+	mkdir namelists
+	mkdir output
+	cp $(UMWM_PATH)/namelists/main.nml $(RUN_PATH)/namelists/main.nml.bk
+	cp $(UMWM_PATH)/namelists/exclude.nml $(RUN_PATH)/namelists/exclude.nml.bk
+	cp  $(UMWM_PATH)/namelists/spectrum.nml $(RUN_PATH)/namelists/spectrum.nml.bk
+	ln -sf $(UMWM_PATH)/tools/umwm.gridtopo $(RUN_PATH)/input/umwm.gridtopo.bk
+	ln -sf $(UMWM_PATH)/tools/umwm.grid $(RUN_PATH)/input/umwm.grid.bk
+	ln -sf $(UMWM_PATH)/restart/* restart/.
+
+
+link_uwin:
+	cp $(UWINCM_PATH)/uwincm $(RUN_PATH)/.
+	cp -n uwin.nml.MASTER uwin.nml
+	echo 'Make sure you edit uwin.nml'
+	cp -n job.sh.MASTER job.sh
+
+
+clean_umwm:
+	rm -r restart
+	rm -r input
+	rm -r namelists
+	rm -r output
+
+clean_nest:
+	rm -r nest
+
+clean_wrf:
+	rm -f wrfout*
+	rm -f wrfrst*
+
+clean_hycom:
+	rm -f archv*
+	rm -f restart_out*
+	rm -f ovrtn_out
+
+clean_coupler:
+	rm -f cplout*
+
+clean_log_files:
+	rm -f job.out job.err
+	rm -f PET*
+
+clean_run: clean_wrf clean_hycom clean_coupler clean_log_files
+	echo "Cleaning up run."
+
+

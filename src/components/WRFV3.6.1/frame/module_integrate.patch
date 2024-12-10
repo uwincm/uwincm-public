@@ -1,0 +1,44 @@
+--- module_integrate.F.orig	2014-08-18 13:07:27.904167134 -0400
++++ module_integrate.F	2014-08-18 13:16:27.064382836 -0400
+@@ -376,24 +376,24 @@
+ 
+          ! Avoid double writes on nests if this is not really the last time;
+          ! Do check for write if the parent domain is ending.
+-         IF ( grid%id .EQ. 1 ) THEN               ! head_grid
+-            CALL med_last_solve_io ( grid , config_flags )
+-         ELSE
++!         IF ( grid%id .EQ. 1 ) THEN               ! head_grid
++!            CALL med_last_solve_io ( grid , config_flags )
++!         ELSE
+ ! zip up the tree and see if any ancestor is at its stop time
+-            should_do_last_io = domain_clockisstoptime( head_grid )
+-            grid_ptr => grid 
+-            DO WHILE ( grid_ptr%id .NE. 1 )
+-               IF ( domain_clockisstoptime( grid_ptr ) ) THEN
+-                  should_do_last_io = .TRUE. 
+-               END IF
+-               grid_ptr => grid_ptr%parents(1)%ptr
+-            ENDDO
+-            IF ( should_do_last_io ) THEN 
+-               grid_ptr => grid 
+-               CALL med_nest_feedback ( grid_ptr%parents(1)%ptr, grid , config_flags )
+-               CALL med_last_solve_io ( grid , config_flags )
+-            ENDIF
+-         ENDIF
++!            should_do_last_io = domain_clockisstoptime( head_grid )
++!            grid_ptr => grid 
++!            DO WHILE ( grid_ptr%id .NE. 1 )
++!               IF ( domain_clockisstoptime( grid_ptr ) ) THEN
++!                  should_do_last_io = .TRUE. 
++!               END IF
++!               grid_ptr => grid_ptr%parents(1)%ptr
++!            ENDDO
++!            IF ( should_do_last_io ) THEN 
++!               grid_ptr => grid 
++!               CALL med_nest_feedback ( grid_ptr%parents(1)%ptr, grid , config_flags )
++!               CALL med_last_solve_io ( grid , config_flags )
++!            ENDIF
++!         ENDIF
+       ENDIF
+    END IF
+    

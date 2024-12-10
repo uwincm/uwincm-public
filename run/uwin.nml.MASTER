@@ -1,0 +1,31 @@
+&MAIN
+  atmosphere = .T.
+  waves      = .F.
+  ocean      = .T.
+/
+
+&DIMENSIONS
+  atmdims = 1549,  834 ! idm,jdm of the atmosphere component
+  wavdims =  799,  399 ! idm,jdm of the wave component
+  ocndims = 2150, 1400 ! idm,jdm of the ocean component
+/
+
+&REFINEMENT
+  xgRefinementRatio = 3  ! Exchange grid refinement ratio (1,3,9,...)
+/
+
+&TIME
+  startDate = 2017, 07, 05, 00, 00, 00
+  endDate   = 2017, 08, 20, 00, 00, 00
+  timeSteps =  60,  60, 180
+/
+
+&COUPLER
+  sstFromOcean              = .T. ! at least AO = .T.
+  currentsFromOcean         = .T. ! at least AO = .T.
+  windStressFromWavesScalar = .F. ! at least AW = .T.
+  windStressFromWavesVector = .F. ! at least AW = .T.
+  oceanStressFromWaves      = .F. ! at least WO = .T.
+  oceanAdvectsWaves         = .F. ! at least WO = .T.
+  waveCurrentInteraction    = .F. ! at least WO = .T.
+/

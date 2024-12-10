@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CIMDocumentSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns="http://www.purl.org/org/esmetadata/cim/1.5/schemas" xsi:schemaLocation="http://www.purl.org/org/esmetadata/cim/1.5/schemas/cim.xsd">
+  <modelComponent>
+    <responsibleParty>
+      <gmd:individualName>
+        <gco:CharacterString>John Doe</gco:CharacterString>
+          <!-- from ESMF: CIM/ResponsibleParty, 'Name'. -->
+          <!--    to ESG: Ingested and stored for role code "", but not displayed yet. -->
+      </gmd:individualName>
+      <abbreviation>JD</abbreviation>
+        <!-- from ESMF: CIM/ResponsibleParty, abbreviation (initials) of 'Name'. -->
+        <!--    to ESG: Not ingested yet. -->
+    </responsibleParty>
+    <documentID>031fc38a-b1b8-d6f6-f729-74319007dc8c</documentID>
+    <documentVersion>1.0</documentVersion>
+    <documentAuthor>
+      <gmd:individualName>
+        <gco:CharacterString>ESMF Version 7.0.0 beta snapshot</gco:CharacterString>
+      </gmd:individualName>
+      <gmd:role>
+        <gmd:CI_RoleCode codeList="" codeListValue="documentAuthor"></gmd:CI_RoleCode>
+      </gmd:role>
+    </documentAuthor>
+    <documentCreationDate>2014-06-17T10:00:24</documentCreationDate>
+  </modelComponent>
+  <simulationRun>
+    <supports>
+      <reference></reference>
+    </supports>
+    <calendar>
+      <realCalendar></realCalendar>
+    </calendar>
+    <dateRange>
+      <closedDateRange>
+      </closedDateRange>
+    </dateRange>
+    <model>
+      <reference></reference>
+    </model>
+    <documentID>2b3f656a-0898-5c75-c643-38f98be69aa0</documentID>
+    <documentVersion>1.0</documentVersion>
+    <documentCreationDate>2014-06-17T10:00:24</documentCreationDate>
+  </simulationRun>
+  <platform>
+    <unit>
+      <machine>
+      </machine>
+    </unit>
+    <documentID>47d7ade3-bff9-8119-c9f3-7ff4cb5e2854</documentID>
+    <documentVersion>1.0</documentVersion>
+    <documentCreationDate>2014-06-17T10:00:24</documentCreationDate>
+  </platform>
+</CIMDocumentSet>

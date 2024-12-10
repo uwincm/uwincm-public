@@ -1,0 +1,76 @@
+# uwincm top-level Makefile
+#
+# set desired model component version
+wrf_version   = 3.9
+hycom_version = 2.2.99
+
+#Use below for coldstart when setting up hycom domain.
+#hycom_version = 2.2.34_coldstart
+
+########################################################################
+.PHONY: clean check_hycom_version
+
+check_hycom_version:
+ifeq ($(hycom_version),$(filter $(hycom_version),2.2.34 2.2.98 2.2.99))
+	cp src/uwin/UWIN_interface_HYCOM_$(hycom_version).F90 src/uwin/UWIN_interface_HYCOM.F90
+else
+	$(error $(hycom_version) is not a valid HYCOM version)
+endif
+
+# display emsf compile-time settings
+esmf_info:
+	$(MAKE) info -C src/esmf
+
+# build esmf
+esmf:
+	$(MAKE) -C src/esmf
+
+# build wrf; must be configured first
+wrf:
+	cd src/components/WRFV$(wrf_version) && ./compile em_real
+
+# build umwm
+umwm:
+	$(MAKE) umwm -C src/components/umwm
+
+# build hycom
+hycom:
+	$(MAKE) -C src/components/hycom/src_$(hycom_version)
+
+# build uwincm
+ESMF_MK=${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.${ESMF_COMPILER}.${ESMF_ABI}.${ESMF_COMM}.default/esmf.mk
+
+uwincm:
+	sed -i "s/-lmpi_cxx//gi" $(ESMF_MK)
+	$(MAKE) check_hycom_version
+	wrf_version=$(wrf_version) hycom_version=$(hycom_version) $(MAKE) -C src/uwin
+	cp src/uwin/uwincm .
+
+########################################################################
+# clean rules
+
+clean:
+	rm -rv uwincm
+
+clean_esmf:
+	$(MAKE) clean -C src/esmf
+
+clean_wrf:
+	cd src/components/WRFV$(wrf_version) && clean -al
+
+clean_umwm:
+	$(MAKE) clean -C src/components/umwm
+
+clean_hycom:
+	$(MAKE) clean -C src/components/hycom/src_$(hycom_version)
+
+clean_uwincm:
+	$(MAKE) clean -C src/uwin
+	rm uwincm
+
+clean_all:
+	$(MAKE) clean
+	$(MAKE) clean_esmf
+	$(MAKE) clean_wrf
+	$(MAKE) clean_umwm
+	$(MAKE) clean_hycom

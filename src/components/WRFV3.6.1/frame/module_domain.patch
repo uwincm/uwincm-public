@@ -1,0 +1,41 @@
+--- module_domain.F.orig	2014-08-18 12:48:13.681184646 -0400
++++ module_domain.F	2014-08-18 12:43:55.098773719 -0400
+@@ -2021,6 +2021,38 @@
+ 
+ 
+ 
++! mcurcic START (PATCH FOR ESMF)
++! Added these from external/io_esmf/module_esmf_extensions.F90
++      FUNCTION ESMF_TimeLE(time1, time2)
++        USE timelib_TimeIntervalMod
++        LOGICAL :: ESMF_TimeLE
++        TYPE(timelib_Time), INTENT(IN) :: time1
++        TYPE(timelib_Time), INTENT(IN) :: time2
++        ESMF_TimeLE = (time1.LE.time2)
++      END FUNCTION ESMF_TimeLE
++
++      FUNCTION ESMF_TimeGE(time1, time2)
++        USE timelib_TimeIntervalMod
++        LOGICAL :: ESMF_TimeGE
++        TYPE(timelib_Time), INTENT(IN) :: time1
++        TYPE(timelib_Time), INTENT(IN) :: time2
++        ESMF_TimeGE = (time1.GE.time2)
++      END FUNCTION ESMF_TimeGE
++
++      FUNCTION ESMF_TimeIntervalIsPositive(timeinterval)
++        USE timelib_TimeIntervalMod
++        LOGICAL :: ESMF_TimeIntervalIsPositive
++        TYPE(timelib_TimeInterval), INTENT(IN) :: timeinterval
++        TYPE(timelib_TimeInterval) :: zerotimeint
++        INTEGER :: rcint
++        CALL timelib_TimeIntervalSet ( zerotimeint, rc=rcint )
++        ESMF_TimeIntervalIsPositive = (timeinterval .GT. zerotimeint)
++      END FUNCTION ESMF_TimeIntervalIsPositive
++! mcurcic END (PATCH FOR ESMF)
++
++
++
++
+       FUNCTION domain_get_sim_start_time ( grid ) RESULT ( simulationStartTime ) 
+         IMPLICIT NONE
+ ! <DESCRIPTION>

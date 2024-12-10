@@ -1,0 +1,59 @@
+
+University of Miami Wave Model (UMWM)
+
+Bug fixes and updates since version 1.0.1:
+
+1) Fixed the issue with gfortran where the compiler would
+not let the code contain SQRT(-1) as a literal constant (Tim Campbell);
+
+2) Fixed the bug where wavenumber was not stored correcly in 
+restart output in MPI mode;
+
+3) Added non-blocking MPI routines in gridded output;
+
+4) Implemented a sequential umwmrst output in MPI mode instead of 
+array gathering to root CPU;
+
+5) Fixed a bug in calculation of spectrum peak;
+
+6) Implemented surface Stokes drift velocities in calculation of 
+skin drag;
+
+7) Added total momentum diagnostic output in x and y;
+
+8) Added momentum flux components and tail output;
+
+9) Fixed bugs in spectrum output;
+
+10) Added grid curvature field to the output;
+
+11) Corrected the ocean top momentum flux; now momentum fluxes 
+are conservative;
+
+12) Added Cg*M to the output;
+
+13) Cleaned-up NetCDF attributes;
+
+14) Fixed a bug in restart_read which caused the model to fail for very large domains;
+
+15) Added intrinsic and total phase and group speeds in the output;
+
+16) Added an option to refine or coarsen the input grid in tools/wrf2umwmgrid;
+
+17) Fixed a bug in advection by currents in UMWM_advection.F90;
+
+18) Upgraded to datetime-fortran library for date and time management;
+
+19) Added time dimension to all fields in the gridded NetCDF output (umwmout);
+
+20) Instead of Cd in restart I/O, using friction velocity ustar;
+
+21) Added explim_ramp in source subroutine in UMWM_physics.F90;
+
+22) Added Stokes e-folding depth to gridded output;
+
+23) Changed the plunging dissipation factor from COTH(kd) to COTH(0.2*kd)
+
+24) Wind speed dependent sheltering coefficient A1 (see UMWM_physics.F90)
+
+25) Updated physics coefficients (see namelist.input)

@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Specify job name
+#$ -N war_rig
+#
+# Pass all current environment variables to the job
+#$ -V
+#
+# Specify parallel environment (mpi or smp) and number of parallel processes
+#$ -pe mpi 96
+#
+# Verify options and abort if there is an error
+#$ -w e
+#
+# Run in current directory
+#$ -cwd
+#
+# Specify output and error log files
+#$ -o job.out
+#$ -e job.err
+
+ulimit -s unlimited 
+# run the model 
+time mpiexec  -n 96 ./uwincm

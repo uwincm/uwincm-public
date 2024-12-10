@@ -1,0 +1,9 @@
+*.o
+*.a
+*.mod
+*.log
+*.exe
+*.inc
+Makefile
+TODO
+uwincm

@@ -1,0 +1,4 @@
+Copy Makefile.MASTER to Makefile, edit the paths at the top, then run make.
+The Makefile is organized in sections so that, for example, doing a `make link_wrf` links the WRF files
+Go through the Makefile to see which sections there are.
+
