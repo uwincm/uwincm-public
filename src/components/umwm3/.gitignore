@@ -1,0 +1,10 @@
+*.o
+*.a
+*.mod
+umwm
+
+restart
+output
+
+
+*.sw?

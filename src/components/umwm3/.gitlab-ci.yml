@@ -1,0 +1,44 @@
+image: fedora:26
+
+stages:
+  - build
+  - test
+
+variables:
+  FCFLAGS: "-O3"
+  CPPFLAGS: ""
+  NETCDF: "/builds/uwincm/umwm/netcdf"
+
+before_script:
+- dnf -y install cmake gcc-gfortran git netcdf-fortran-{static,devel} openmpi openmpi-devel
+- git submodule sync --recursive
+- git submodule update --init --recursive
+- mkdir -v netcdf && cd netcdf
+- mkdir -v include && cd include
+- ln -sv /usr/lib64/gfortran/modules/netcdf.mod .
+- ln -sv /usr/include/netcdf.inc .
+- cd /builds/uwincm/umwm
+- export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib
+- export PATH=/usr/lib64/openmpi/bin:$PATH
+
+build_serial:
+  stage: build
+  script:
+  - FC=gfortran FCFLAGS=-O3 make umwm
+
+build_parallel:
+  stage: build
+  script:
+  - FC=mpif90 FCFLAGS=-O3 CPPFLAGS=-DMPI make umwm
+
+test_serial:
+  stage: test
+  script:
+  - FC=gfortran make umwm
+  - ./umwm
+
+test_parallel:
+  stage: test
+  script:
+  - FC=mpif90 FCFLAGS=-O3 CPPFLAGS=-DMPI make umwm
+  - mpiexec --allow-run-as-root -n 2 ./umwm

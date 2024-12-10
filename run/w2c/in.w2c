@@ -1,0 +1,11 @@
+wrfoutpath		,	/home/orca/mcurcic/harvey/output/awo_2017082400_gfs
+longitude   		,	-92.5
+latitude    		,	22.0
+starttime(YYYYMMDDHHmm)	,   	201708240000
+endtime(YYYYMMDDHHmm)	,	201708310000
+interval(minutes) 	,	60
+d02(hour) 		,	0   
+d03(hour)               ,	0   
+w2c(y/n)		,	n
+hur_num			,	9
+hur_name		,	harvey

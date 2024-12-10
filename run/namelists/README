@@ -1,0 +1,11 @@
+These are based on the namelists in ../../src/components/umwm3/namelists/. They've been modified with some new options.
+As usual, copy the .MASTER copies to the same file names without the .MASTER at the end.
+
+
+List of the namelist files:
+
+main.nml: Main namelist for UMWM3 (waves component).
+
+exclude.nml: List of "lakes" points that should be set to land "on the fly". One x y value on each row. Set fillLakes = .T. in main.nml to activate this.
+
+spectrum.nml: List of points where full spectrum output is desired. Each row is: x y location_name. Set outspec > 0 in main.nml to activate this.

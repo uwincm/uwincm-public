@@ -1,0 +1,24 @@
+&input_output
+/
+&first_guess
+/
+&definition
+/
+&grads
+/
+&w2c
+/
+&cg_output
+ output_cg = .cgout.
+ exist_file1 = exist_1
+ exist_file2 = exist_2
+ exist_file3 = exist_3
+ in_file1 = 'cg_in1'
+ in_file2 = 'cg_in2'
+ in_file3 = 'cg_in3'
+ out_cg_file2=''
+/
+&vorrel
+/
+
+

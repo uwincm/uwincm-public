@@ -1,0 +1,44 @@
+# uwincm WRF input directory Makefile.
+#
+# +++ WPS needs to be compiled first +++
+#
+# - Edit the path to WPS, if needed.
+# - "make" to copy the necessary files.
+# - "make clean" to reset the directory.
+#
+######################################################
+
+
+wps_directory = "../src/components/WPS-3.9.1"
+
+
+.PHONY: help
+help:	
+	@echo ""
+	@echo "Set wps_directory in the Makefile."
+	@echo "WPS needs to be compiled first."
+	@echo ""
+	@echo "make                 -- Defaults to make help"
+	@echo "make help            -- Display this help message."
+	@echo "make copy_wps        -- Copy the necessary files from the WPS directory."
+	@echo "make clean_wps           -- Restore the directory. (Keep Makefile and namelist.wps)"
+
+
+copy_wps:
+	cp -r $(wps_directory)/* .
+
+
+clean_wps:
+	rm -rf ./arch
+	rm ./clean ./compile ./configure
+	rm -rf ./geogrid
+	rm ./link_grib.csh
+	rm -rf ./metgrid
+	rm ./namelist.wps.all_options
+	rm ./namelist.wps.fire
+	rm ./namelist.wps.global
+	rm ./namelist.wps.nmm
+	rm ./README
+	rm -rf ./ungrib
+	rm -rf ./util
+	rm ./*.exe

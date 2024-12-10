@@ -48,6 +48,7 @@ TYPE(ESMF_TimeInterval) :: worldTimeStep
 INTEGER,DIMENSION(6) :: startDate,endDate
 INTEGER,DIMENSION(2) :: atmdims,wavdims,ocndims
 INTEGER,DIMENSION(3) :: timeSteps
+INTEGER :: uwinTimeSteps
 
 REAL :: t0,t1
 
@@ -62,6 +63,9 @@ NAMELIST /DIMENSIONS/ atmdims,wavdims,ocndims
 
 ! BK read in xgRefinementRatio
 NAMELIST /REFINEMENT/ xgRefinementRatio
+
+! BK read in TIME parameters from namelist.
+NAMELIST /TIME/ startDate,endDate,timeSteps,uwinTimeSteps
 
 ! Coupling switches
 NAMELIST /COUPLER/ sstFromOcean,             &
@@ -99,12 +103,14 @@ CALL ESMF_LogFlush()
 ! Gridded component initialization
 !=======================================================================
 xgRefinementRatio = 3 ! BK default, if it's not in the namelist.
+uwinTimeSteps = 60    ! BK default, if it's not in the namelist.
 
 OPEN(UNIT=11,FILE='uwin.nml',STATUS='OLD',FORM='FORMATTED',&
      ACCESS='SEQUENTIAL',ACTION='READ')
 READ(UNIT=11,NML=MAIN)
 READ(UNIT=11,NML=DIMENSIONS)
 READ(UNIT=11,NML=REFINEMENT)
+READ(UNIT=11,NML=TIME)
 READ(UNIT=11,NML=COUPLER)
 !READ(UNIT=11,NML=VCONV)
 CLOSE(UNIT=11)
@@ -215,13 +221,14 @@ IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
 ! TODO Make the worldClock more flexible/general in terms of 
 ! start and stop time and time stepping
+! BK: Addressed the time stepping part of this by making it be a namelist variable.
 
 CALL ESMF_TimeIntervalSet(timeinterval = worldTimeStep,&
-                          s            = 60,           &
+                          s            = uwinTimeSteps,&
                           rc           = rc)
 IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
-! Initialize world clock as atmosphere model clock:
+! Initialize world clock based on namelist:
 worldClock = ESMF_ClockCreate(timeStep  = worldTimeStep,  &
                               startTime = gc(1)%startTime,&
                               stopTime  = gc(1)%stopTime, &

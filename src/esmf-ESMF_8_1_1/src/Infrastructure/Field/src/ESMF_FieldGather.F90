@@ -1,0 +1,3079 @@
+! $Id$
+!
+! Earth System Modeling Framework
+! Copyright 2002-2021, University Corporation for Atmospheric Research,
+! Massachusetts Institute of Technology, Geophysical Fluid Dynamics
+! Laboratory, University of Michigan, National Centers for Environmental
+! Prediction, Los Alamos National Laboratory, Argonne National Laboratory,
+! NASA Goddard Space Flight Center.
+! Licensed under the University of Illinois-NCSA License.
+!
+!==============================================================================
+!
+#define ESMF_FILENAME "ESMF_FieldGather.F90"
+!
+! ESMF Field Communications Gather module
+module ESMF_FieldGatherMod
+!
+!==============================================================================
+!
+!
+!------------------------------------------------------------------------------
+! INCLUDES
+#include "ESMF.h"
+!------------------------------------------------------------------------------
+!
+!BOPI
+! !MODULE: ESMF_FieldGatherMod - FieldGather routines for Field objects
+!
+! !DESCRIPTION:
+! The code in this file implements the {\tt ESMF\_FieldGather} subroutine.
+!
+!EOPI
+!------------------------------------------------------------------------------
+! !USES:
+    use ESMF_UtilTypesMod
+    use ESMF_InitMacrosMod
+    use ESMF_LogErrMod
+    use ESMF_VMMod
+    use ESMF_StaggerLocMod
+    use ESMF_GridMod
+    use ESMF_MeshMod
+    use ESMF_XGridMod
+    use ESMF_XGridGetMod
+    use ESMF_GeomBaseMod
+    use ESMF_FieldMod
+    use ESMF_FieldGetMod
+    use ESMF_ArrayMod
+    implicit none
+    private
+!------------------------------------------------------------------------------
+! !PRIVATE TYPES:
+! <none>
+!------------------------------------------------------------------------------
+! !PUBLIC TYPES:
+! <none>
+!------------------------------------------------------------------------------
+!
+! !PUBLIC MEMBER FUNCTIONS:
+    public ESMF_FieldGather
+    public ESMF_FieldFill
+!
+!------------------------------------------------------------------------------
+! The following line turns the CVS identifier string into a printable variable.
+    character(*), parameter, private :: version = &
+      '$Id$'
+!------------------------------------------------------------------------------
+    interface ESMF_FieldGather
+        !------------------------------------------------------------------------------ 
+! <This section created by macro - do not edit directly> 
+#ifndef PIO_TKR 
+#ifndef ESMF_NO_INTEGER_1_BYTE 
+ module procedure ESMF_FieldGather1DI1 
+ module procedure ESMF_FieldGather2DI1 
+ module procedure ESMF_FieldGather3DI1 
+ module procedure ESMF_FieldGather4DI1 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+ module procedure ESMF_FieldGather5DI1 
+ module procedure ESMF_FieldGather6DI1 
+ module procedure ESMF_FieldGather7DI1 
+#endif 
+#endif 
+#ifndef ESMF_NO_INTEGER_2_BYTE 
+ module procedure ESMF_FieldGather1DI2 
+ module procedure ESMF_FieldGather2DI2 
+ module procedure ESMF_FieldGather3DI2 
+ module procedure ESMF_FieldGather4DI2 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+ module procedure ESMF_FieldGather5DI2 
+ module procedure ESMF_FieldGather6DI2 
+ module procedure ESMF_FieldGather7DI2 
+#endif 
+#endif 
+#endif 
+ module procedure ESMF_FieldGather1DI4 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather1DI8 
+#endif 
+ module procedure ESMF_FieldGather1DR4 
+ module procedure ESMF_FieldGather1DR8 
+ module procedure ESMF_FieldGather2DI4 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather2DI8 
+#endif 
+ module procedure ESMF_FieldGather2DR4 
+ module procedure ESMF_FieldGather2DR8 
+ module procedure ESMF_FieldGather3DI4 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather3DI8 
+#endif 
+ module procedure ESMF_FieldGather3DR4 
+ module procedure ESMF_FieldGather3DR8 
+ module procedure ESMF_FieldGather4DI4 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather4DI8 
+#endif 
+ module procedure ESMF_FieldGather4DR4 
+ module procedure ESMF_FieldGather4DR8 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+ module procedure ESMF_FieldGather5DI4 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather5DI8 
+#endif 
+ module procedure ESMF_FieldGather5DR4 
+ module procedure ESMF_FieldGather5DR8 
+#ifndef PIO_TKR 
+ module procedure ESMF_FieldGather6DI4 
+ module procedure ESMF_FieldGather6DI8 
+ module procedure ESMF_FieldGather6DR4 
+ module procedure ESMF_FieldGather6DR8 
+ module procedure ESMF_FieldGather7DI4 
+ module procedure ESMF_FieldGather7DI8 
+ module procedure ESMF_FieldGather7DR4 
+ module procedure ESMF_FieldGather7DR8 
+#endif 
+#endif 
+! < end macro - do not edit directly > 
+!------------------------------------------------------------------------------ 
+
+        module procedure ESMF_FieldGatherNotRoot
+    end interface
+!------------------------------------------------------------------------------
+contains
+!------------------------------------------------------------------------------
+#undef ESMF_METHOD
+#define ESMF_METHOD "ESMF_FieldFill()"
+#define ESMF_FILE "ESMF_FieldGather.F90"
+!BOP
+! !IROUTINE: ESMF_FieldFill - Fill data into a Field
+! !INTERFACE:
+  subroutine ESMF_FieldFill(field, keywordEnforcer, dataFillScheme, &
+    const1, member, step, &
+    param1I4, param2I4, param3I4, &
+    param1R4, param2R4, param3R4, &
+    param1R8, param2R8, param3R8, &
+    rc)
+! !ARGUMENTS:
+    type(ESMF_Field), intent(inout) :: field
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below
+    character(len=*), intent(in), optional :: dataFillScheme
+    real(ESMF_KIND_R8), intent(in), optional :: const1
+    integer, intent(in), optional :: member
+    integer, intent(in), optional :: step
+    integer(ESMF_KIND_I4), intent(in), optional :: param1I4
+    integer(ESMF_KIND_I4), intent(in), optional :: param2I4
+    integer(ESMF_KIND_I4), intent(in), optional :: param3I4
+    real(ESMF_KIND_R4), intent(in), optional :: param1R4
+    real(ESMF_KIND_R4), intent(in), optional :: param2R4
+    real(ESMF_KIND_R4), intent(in), optional :: param3R4
+    real(ESMF_KIND_R8), intent(in), optional :: param1R8
+    real(ESMF_KIND_R8), intent(in), optional :: param2R8
+    real(ESMF_KIND_R8), intent(in), optional :: param3R8
+    integer, intent(out), optional :: rc
+! !DESCRIPTION:
+! \label{ESMF_FieldFill}
+! Fill {\tt field} with data according to {\tt dataFillScheme}. Depending
+! on the chosen fill scheme, the {\tt member} and {\tt step} arguments are
+! used to provide differing fill data patterns.
+!
+! The arguments are:
+! \begin{description}
+! \item[field]
+! The {\tt ESMF\_Field} object to fill with data.
+! \item[{[dataFillScheme]}]
+! The fill scheme. The available options are "sincos", "one", and "const".
+! Defaults to "sincos".
+! \item[{[const1]}]
+! Constant of real type. Defaults to 0.
+! \item[{[member]}]
+! Member incrementor. Defaults to 1.
+! \item[{[step]}]
+! Step incrementor. Defaults to 1.
+! \item[{[param1I4]}]
+! Optional parameter of typekind I4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param2I4]}]
+! Optional parameter of typekind I4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param3I4]}]
+! Optional parameter of typekind I4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param1R4]}]
+! Optional parameter of typekind R4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param2R4]}]
+! Optional parameter of typekind R4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param3R4]}]
+! Optional parameter of typekind R4.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param1R8]}]
+! Optional parameter of typekind R8.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param2R8]}]
+! Optional parameter of typekind R8.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[param3R8]}]
+! Optional parameter of typekind R8.
+! The default depends on the specified {\tt dataFillScheme}.
+! \item[{[rc]}]
+! Return code; equals {\tt ESMF\_SUCCESS} if there are no errors.
+! \end{description}
+!
+!EOP
+  !-----------------------------------------------------------------------------
+    ! local variables
+    type(ESMF_Grid) :: grid
+    type(ESMF_Mesh) :: mesh
+    type(ESMF_XGrid) :: xgrid
+    type(ESMF_GeomType_Flag) :: geomtype
+    type(ESMF_TypeKind_Flag) :: typekind
+    type(ESMF_StaggerLoc) :: staggerloc
+    type(ESMF_MeshLoc) :: meshloc
+    integer :: rank, dimCount, ldeCount, lde
+    integer, allocatable :: coordDimCount(:)
+    real(ESMF_KIND_R8) :: l_const1
+    real(ESMF_KIND_R8), pointer :: dataPtrR8D1(:)
+    real(ESMF_KIND_R8), pointer :: dataPtrR8D2(:,:)
+    real(ESMF_KIND_R8), pointer :: dataPtrR8D3(:,:,:)
+    real(ESMF_KIND_R4), pointer :: dataPtrR4D1(:)
+    real(ESMF_KIND_R4), pointer :: dataPtrR4D2(:,:)
+    real(ESMF_KIND_R4), pointer :: dataPtrR4D3(:,:,:)
+    real(ESMF_KIND_R8), pointer :: coord1PtrR8D1(:)
+    real(ESMF_KIND_R8), pointer :: coord2PtrR8D1(:)
+    real(ESMF_KIND_R8), pointer :: coord3PtrR8D1(:)
+    real(ESMF_KIND_R8), pointer :: coordPtrR8D1(:)
+    real(ESMF_KIND_R8), pointer :: coord1PtrR8D2(:,:)
+    real(ESMF_KIND_R8), pointer :: coord2PtrR8D2(:,:)
+    real(ESMF_KIND_R8), pointer :: coord1PtrR8D3(:,:,:)
+    real(ESMF_KIND_R8), pointer :: coord2PtrR8D3(:,:,:)
+    real(ESMF_KIND_R8), pointer :: coord3PtrR8D3(:,:,:)
+    integer :: i, j, k
+    integer :: numOwnedPoints
+    integer :: l_member, l_step
+    integer :: l_param1I4, l_param2I4
+    character(len=16) :: l_dataFillScheme
+    if (present(rc)) rc = ESMF_SUCCESS
+    call ESMF_FieldGet(field, typekind=typekind, rank=rank, &
+      geomtype=geomtype, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+      ESMF_CONTEXT)) &
+      return ! bail out
+    l_const1 = 0.d0;
+    if (present(const1)) l_const1 = const1
+    l_member = 1
+    if(present(member)) l_member = member
+    if(present(param1I4)) l_member = param1I4
+    l_param1I4 = l_member
+    l_param2I4 = l_member
+    if(present(param2I4)) l_param2I4 = param2I4
+    l_step = 1
+    if(present(step)) l_step = step
+    if(present(param3I4)) l_member = param3I4
+    l_dataFillScheme = "sincos"
+    if(present(dataFillScheme)) l_dataFillScheme = dataFillScheme
+    allocate(coordDimCount(rank))
+    if (geomtype==ESMF_GEOMTYPE_GRID) then
+      call ESMF_FieldGet(field, grid=grid, localDeCount=ldeCount, &
+        staggerloc=staggerloc, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+      call ESMF_GridGet(grid, dimCount=dimCount, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+    elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+      call ESMF_FieldGet(field, mesh=mesh, localDeCount=ldeCount, &
+        meshloc=meshloc, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+      if (meshloc==ESMF_MESHLOC_ELEMENT) then
+        call ESMF_MeshGet(mesh, spatialDim=dimCount, &
+          numOwnedElements=numOwnedPoints, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+          ESMF_CONTEXT)) &
+          return ! bail out
+      elseif (meshloc==ESMF_MESHLOC_NODE) then
+        call ESMF_MeshGet(mesh, spatialDim=dimCount, &
+          numOwnedNodes=numOwnedPoints, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+          ESMF_CONTEXT)) &
+          return ! bail out
+      else
+        call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+          msg="Unsupported MESHLOC detected.", &
+          ESMF_CONTEXT, &
+          rcToReturn=rc)
+        return ! bail out
+      endif
+    elseif (geomtype==ESMF_GEOMTYPE_XGRID) then
+      call ESMF_FieldGet(field, xgrid=xgrid, localDeCount=ldeCount, &
+        rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+      call ESMF_XGridGet(xgrid, mesh=mesh, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+      call ESMF_MeshGet(mesh, spatialDim=dimCount, &
+        numOwnedElements=numOwnedPoints, rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+        ESMF_CONTEXT)) &
+        return ! bail out
+    else
+      call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+        msg="Unsupported geomtype detected.", &
+        ESMF_CONTEXT, &
+        rcToReturn=rc)
+      return ! bail out
+    endif
+    if (trim(l_dataFillScheme)=="sincos") then
+      if (typekind==ESMF_TYPEKIND_R8 .and. rank==1) then
+        if (dimCount==1) then
+          ! 1D sin pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, staggerloc=staggerloc, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coord1PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coord1PtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coord1PtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR8D1,1),ubound(dataPtrR8D1,1)
+              dataPtrR8D1(i) = &
+                cos(real(l_member)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coord1PtrR8D1)
+            endif
+          enddo
+        else if (dimCount==2) then
+          ! 2D pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coordPtrR8D1(2*numOwnedPoints), &
+               coord1PtrR8D1(numOwnedPoints), coord2PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+              do i=1, numOwnedPoints
+                coord1PtrR8D1(i) = coordPtrR8D1((i-1)*2+1)
+                coord2PtrR8D1(i) = coordPtrR8D1((i-1)*2+2)
+              enddo
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR8D1,1),ubound(dataPtrR8D1,1)
+              dataPtrR8D1(i) = &
+                cos(real(l_param1I4)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.) * &
+                sin(real(l_param2I4)*3.1416*(coord2PtrR8D1(i)+real(l_step))/90.)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coordPtrR8D1, coord1PtrR8D1, coord2PtrR8D1)
+            endif
+          enddo
+        else if (dimCount==3) then
+          ! 3D pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=3, localDe=lde, &
+                farrayPtr=coord3PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coordPtrR8D1(3*numOwnedPoints), &
+               coord1PtrR8D1(numOwnedPoints), coord2PtrR8D1(numOwnedPoints), &
+               coord3PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+              do i=1, numOwnedPoints
+                coord1PtrR8D1(i) = coordPtrR8D1((i-1)*3+1)
+                coord2PtrR8D1(i) = coordPtrR8D1((i-1)*3+2)
+                coord3PtrR8D1(i) = coordPtrR8D1((i-1)*3+3)
+              enddo
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR8D1,1),ubound(dataPtrR8D1,1)
+              dataPtrR8D1(i) = real(real(l_member) * ( &
+                  coord1PtrR8D1(i)**2 &
+                + coord2PtrR8D1(i)**2 &
+                + coord3PtrR8D1(i)**2) &
+                , ESMF_KIND_R8)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coordPtrR8D1, coord1PtrR8D1, coord2PtrR8D1)
+            endif
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==2) then
+        if (dimCount==2) then
+          ! 2D sin*cos pattern
+          do lde=0, ldeCount-1
+            call ESMF_GridGet(grid, coordDimCount=coordDimCount, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            if (coordDimCount(1)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            if (coordDimCount(2)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D2, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            if (coordDimCount(1)==1 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR8D2,2),ubound(dataPtrR8D2,2)
+              do i=lbound(dataPtrR8D2,1),ubound(dataPtrR8D2,1)
+                dataPtrR8D2(i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)
+              enddo
+              enddo
+            else if (coordDimCount(1)==2 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR8D2,2),ubound(dataPtrR8D2,2)
+              do i=lbound(dataPtrR8D2,1),ubound(dataPtrR8D2,1)
+                dataPtrR8D2(i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)
+              enddo
+              enddo
+            else if (coordDimCount(1)==1 .and. coordDimCount(2)==2) then
+              do j=lbound(dataPtrR8D2,2),ubound(dataPtrR8D2,2)
+              do i=lbound(dataPtrR8D2,1),ubound(dataPtrR8D2,1)
+                dataPtrR8D2(i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)
+              enddo
+              enddo
+            else
+              ! only choice left is both 2d coordinate arrays
+              do j=lbound(dataPtrR8D2,2),ubound(dataPtrR8D2,2)
+              do i=lbound(dataPtrR8D2,1),ubound(dataPtrR8D2,1)
+                dataPtrR8D2(i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)
+              enddo
+              enddo
+            endif
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==3) then
+        if (dimCount==2) then
+          ! 2D sin*cos pattern
+          do lde=0, ldeCount-1
+            call ESMF_GridGet(grid, coordDimCount=coordDimCount, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            if (coordDimCount(1)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            if (coordDimCount(2)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            !TODO: add a check to make sure gridToFieldMap puts undistributed
+            !TODO: dim first
+            if (coordDimCount(1)==1 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR8D3,3),ubound(dataPtrR8D3,3)
+              do i=lbound(dataPtrR8D3,2),ubound(dataPtrR8D3,2)
+              do k=lbound(dataPtrR8D3,1),ubound(dataPtrR8D3,1)
+                dataPtrR8D3(k,i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)
+              enddo
+              enddo
+              enddo
+            else if (coordDimCount(1)==2 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR8D3,3),ubound(dataPtrR8D3,3)
+              do i=lbound(dataPtrR8D3,2),ubound(dataPtrR8D3,2)
+              do k=lbound(dataPtrR8D3,1),ubound(dataPtrR8D3,1)
+                dataPtrR8D3(k,i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)
+              enddo
+              enddo
+              enddo
+            else if (coordDimCount(1)==1 .and. coordDimCount(2)==2) then
+              do j=lbound(dataPtrR8D3,3),ubound(dataPtrR8D3,3)
+              do i=lbound(dataPtrR8D3,2),ubound(dataPtrR8D3,2)
+              do k=lbound(dataPtrR8D3,1),ubound(dataPtrR8D3,1)
+                dataPtrR8D3(k,i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)
+              enddo
+              enddo
+              enddo
+            else
+              ! only choice left is both 2d coordinate arrays
+              do j=lbound(dataPtrR8D3,3),ubound(dataPtrR8D3,3)
+              do i=lbound(dataPtrR8D3,2),ubound(dataPtrR8D3,2)
+              do k=lbound(dataPtrR8D3,1),ubound(dataPtrR8D3,1)
+                dataPtrR8D3(k,i,j) = &
+                  cos(real(l_param1I4)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.) * &
+                  sin(real(l_param2I4)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)
+              enddo
+              enddo
+              enddo
+            endif
+          enddo
+        else if (dimCount==3) then
+          ! 3D sin*cos*sin pattern
+          do lde=0, ldeCount-1
+            call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+              farrayPtr=coord1PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+              farrayPtr=coord2PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_GridGetCoord(grid, coordDim=3, localDe=lde, &
+              farrayPtr=coord3PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do k=lbound(dataPtrR8D3,3),ubound(dataPtrR8D3,3)
+            do j=lbound(dataPtrR8D3,2),ubound(dataPtrR8D3,2)
+            do i=lbound(dataPtrR8D3,1),ubound(dataPtrR8D3,1)
+              dataPtrR8D3(i,j,k) = &
+                cos(real(l_member)*3.1416*(coord1PtrR8D3(i,j,k)+real(l_step))/360.) * &
+                sin(real(l_member)*3.1416*(coord2PtrR8D3(i,j,k)+real(l_step))/90.) * &
+                cos(real(l_member)*3.1416*(coord3PtrR8D3(i,j,k)+real(l_step))/360.)
+            enddo
+            enddo
+            enddo
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==1) then
+        if (dimCount==1) then
+          ! 1D sin pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coord1PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coord1PtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coord1PtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR4D1,1),ubound(dataPtrR4D1,1)
+              dataPtrR4D1(i) = real( &
+                cos(real(l_member)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.)&
+                , ESMF_KIND_R4)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coord1PtrR8D1)
+            endif
+          enddo
+        else if (dimCount==2) then
+          ! 2D pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coordPtrR8D1(2*numOwnedPoints), &
+               coord1PtrR8D1(numOwnedPoints), coord2PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+              do i=1, numOwnedPoints
+                coord1PtrR8D1(i) = coordPtrR8D1((i-1)*2+1)
+                coord2PtrR8D1(i) = coordPtrR8D1((i-1)*2+2)
+              enddo
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR4D1,1),ubound(dataPtrR4D1,1)
+              dataPtrR4D1(i) = real( &
+                cos(real(l_member)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.)&
+                * &
+                sin(real(l_member)*3.1416*(coord2PtrR8D1(i)+real(l_step))/90.)&
+                , ESMF_KIND_R4)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coordPtrR8D1, coord1PtrR8D1, coord2PtrR8D1)
+            endif
+          enddo
+        else if (dimCount==3) then
+          ! 3D pattern
+          do lde=0, ldeCount-1
+            if (geomtype==ESMF_GEOMTYPE_GRID) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+              call ESMF_GridGetCoord(grid, coordDim=3, localDe=lde, &
+                farrayPtr=coord3PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            elseif (geomtype==ESMF_GEOMTYPE_MESH) then
+              allocate(coordPtrR8D1(3*numOwnedPoints), &
+               coord1PtrR8D1(numOwnedPoints), coord2PtrR8D1(numOwnedPoints), &
+               coord3PtrR8D1(numOwnedPoints))
+              if (meshloc==ESMF_MESHLOC_ELEMENT) then
+                call ESMF_MeshGet(mesh, ownedElemCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              else
+                call ESMF_MeshGet(mesh, ownedNodeCoords=coordPtrR8D1, rc=rc)
+                if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                  ESMF_CONTEXT)) &
+                  return ! bail out
+              endif
+              do i=1, numOwnedPoints
+                coord1PtrR8D1(i) = coordPtrR8D1((i-1)*3+1)
+                coord2PtrR8D1(i) = coordPtrR8D1((i-1)*3+2)
+                coord3PtrR8D1(i) = coordPtrR8D1((i-1)*3+3)
+              enddo
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D1, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do i=lbound(dataPtrR4D1,1),ubound(dataPtrR4D1,1)
+              dataPtrR4D1(i) = real(real(l_member) * ( &
+                  coord1PtrR8D1(i)**2 &
+                + coord2PtrR8D1(i)**2 &
+                + coord3PtrR8D1(i)**2) &
+                , ESMF_KIND_R4)
+            enddo
+            if (geomtype==ESMF_GEOMTYPE_MESH) then
+              deallocate(coordPtrR8D1, coord1PtrR8D1, coord2PtrR8D1)
+            endif
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==2) then
+        if (dimCount==2) then
+          ! 2D sin*cos pattern
+          do lde=0, ldeCount-1
+            call ESMF_GridGet(grid, coordDimCount=coordDimCount, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            if (coordDimCount(1)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+                farrayPtr=coord1PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            if (coordDimCount(2)==1) then
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D1, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            else
+              ! assume the only other choice here is 2D, if not trigger error
+              call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+                farrayPtr=coord2PtrR8D2, rc=rc)
+              if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+                ESMF_CONTEXT)) &
+                return ! bail out
+            endif
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D2, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            if (coordDimCount(1)==1 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR4D2,2),ubound(dataPtrR4D2,2)
+              do i=lbound(dataPtrR4D2,1),ubound(dataPtrR4D2,1)
+                dataPtrR4D2(i,j) = real( &
+                  cos(real(l_member)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.)&
+                  * &
+                  sin(real(l_member)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)&
+                  , ESMF_KIND_R4)
+              enddo
+              enddo
+            else if (coordDimCount(1)==2 .and. coordDimCount(2)==1) then
+              do j=lbound(dataPtrR4D2,2),ubound(dataPtrR4D2,2)
+              do i=lbound(dataPtrR4D2,1),ubound(dataPtrR4D2,1)
+                dataPtrR4D2(i,j) = real( &
+                  cos(real(l_member)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.)&
+                  * &
+                  sin(real(l_member)*3.1416*(coord2PtrR8D1(j)+real(l_step))/90.)&
+                  , ESMF_KIND_R4)
+              enddo
+              enddo
+            else if (coordDimCount(1)==1 .and. coordDimCount(2)==2) then
+              do j=lbound(dataPtrR4D2,2),ubound(dataPtrR4D2,2)
+              do i=lbound(dataPtrR4D2,1),ubound(dataPtrR4D2,1)
+                dataPtrR4D2(i,j) = real( &
+                  cos(real(l_member)*3.1416*(coord1PtrR8D1(i)+real(l_step))/360.)&
+                  * &
+                  sin(real(l_member)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)&
+                  , ESMF_KIND_R4)
+              enddo
+              enddo
+            else
+              ! only choice left is both 2d coordinate arrays
+              do j=lbound(dataPtrR4D2,2),ubound(dataPtrR4D2,2)
+              do i=lbound(dataPtrR4D2,1),ubound(dataPtrR4D2,1)
+                dataPtrR4D2(i,j) = real( &
+                  cos(real(l_member)*3.1416*(coord1PtrR8D2(i,j)+real(l_step))/360.)&
+                  * &
+                  sin(real(l_member)*3.1416*(coord2PtrR8D2(i,j)+real(l_step))/90.)&
+                  , ESMF_KIND_R4)
+              enddo
+              enddo
+            endif
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==3) then
+        if (dimCount==3) then
+          ! 3D sin*cos*sin pattern
+          do lde=0, ldeCount-1
+            call ESMF_GridGetCoord(grid, coordDim=1, localDe=lde, &
+              farrayPtr=coord1PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_GridGetCoord(grid, coordDim=2, localDe=lde, &
+              farrayPtr=coord2PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_GridGetCoord(grid, coordDim=3, localDe=lde, &
+              farrayPtr=coord3PtrR8D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D3, rc=rc)
+            if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+              ESMF_CONTEXT)) &
+              return ! bail out
+            do k=lbound(dataPtrR4D3,3),ubound(dataPtrR4D3,3)
+            do j=lbound(dataPtrR4D3,2),ubound(dataPtrR4D3,2)
+            do i=lbound(dataPtrR4D3,1),ubound(dataPtrR4D3,1)
+              dataPtrR4D3(i,j,k) = real( &
+                cos(real(l_member)*3.1416*(coord1PtrR8D3(i,j,k)+real(l_step))/360.)&
+                * &
+                sin(real(l_member)*3.1416*(coord2PtrR8D3(i,j,k)+real(l_step))/90.)&
+                * &
+                cos(real(l_member)*3.1416*(coord3PtrR8D3(i,j,k)+real(l_step))/360.)&
+                , ESMF_KIND_R4)
+            enddo
+            enddo
+            enddo
+          enddo
+        else
+          call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+            msg="Unsupported dimCount detected.", &
+            ESMF_CONTEXT, &
+            rcToReturn=rc)
+          return ! bail out
+        endif
+      else
+        call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+          msg="Unsupported typekind-rank and scheme combination requested.", &
+          ESMF_CONTEXT, &
+          rcToReturn=rc)
+        return ! bail out
+      endif
+    else if (trim(dataFillScheme)=="one") then
+      do lde=0, ldeCount-1
+        if (typekind==ESMF_TYPEKIND_R8 .and. rank==1) then
+          ! 1D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D1, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D1 = 1._ESMF_KIND_R8
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==1) then
+          ! 1D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D1, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D1 = 1._ESMF_KIND_R4
+        elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==2) then
+          ! 2D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D2, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D2 = 1._ESMF_KIND_R8
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==2) then
+          ! 2D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D2, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D2 = 1._ESMF_KIND_R4
+        elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==3) then
+          ! 3D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D3, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D3 = 1._ESMF_KIND_R8
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==3) then
+          ! 3D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D3, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D3 = 1._ESMF_KIND_R4
+        endif
+      enddo
+    else if (trim(dataFillScheme)=="const") then
+      do lde=0, ldeCount-1
+        if (typekind==ESMF_TYPEKIND_R8 .and. rank==1) then
+          ! 1D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D1, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D1 = real(l_const1,ESMF_KIND_R8);
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==1) then
+          ! 1D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D1, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D1 = real(l_const1,ESMF_KIND_R4);
+        elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==2) then
+          ! 2D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D2, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D2 = real(l_const1,ESMF_KIND_R8);
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==2) then
+          ! 2D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D2, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D2 = real(l_const1,ESMF_KIND_R4);
+        elseif (typekind==ESMF_TYPEKIND_R8 .and. rank==3) then
+          ! 3D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR8D3, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR8D3 = real(l_const1,ESMF_KIND_R8);
+        elseif (typekind==ESMF_TYPEKIND_R4 .and. rank==3) then
+          ! 3D all 1.
+          call ESMF_FieldGet(field, localDe=lde, farrayPtr=dataPtrR4D3, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT)) &
+            return ! bail out
+          ! initialize the entire array
+          dataPtrR4D3 = real(l_const1,ESMF_KIND_R4);
+        endif
+      enddo
+    else
+      call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
+        msg="Unknown dataFillScheme requested.", &
+        ESMF_CONTEXT, &
+        rcToReturn=rc)
+      return ! bail out
+    endif
+    deallocate(coordDimCount)
+  end subroutine
+#undef ESMF_FILE
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------ 
+! <This section created by macro - do not edit directly> 
+ 
+!! < start of macros which become actual subroutine bodies after expansion > 
+ 
+!---------------------------------------------------------------------------- 
+!BOP 
+! 
+! !IROUTINE: ESMF_FieldGather - Gather a Fortran array from an ESMF_Field 
+! 
+! !INTERFACE: 
+! subroutine ESMF_FieldGather<rank><type><kind>(field, farray, & 
+! rootPet, tile, vm, rc) 
+! 
+! !ARGUMENTS: 
+! type(ESMF_Field), intent(in) :: field 
+! <type>(ESMF_KIND_<kind>), intent(out), target :: farray(<rank>) 
+! integer, intent(in) :: rootPet 
+! type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+! integer, intent(in), optional :: tile 
+! type(ESMF_VM), intent(in), optional :: vm 
+! integer, intent(out), optional :: rc 
+! 
+! 
+! 
+! !STATUS: 
+! \begin{itemize} 
+! \item\apiStatusCompatibleVersion{5.2.0r} 
+! \end{itemize} 
+! 
+! !DESCRIPTION: 
+! Gather the data of an {ESMF\_Field} object into the {\tt farray} located on 
+! {\tt rootPET}. A single DistGrid tile of {\tt array} must be 
+! gathered into {\tt farray}. The optional {\tt tile} 
+! argument allows selection of the tile. For Fields defined on a single 
+! tile DistGrid the default selection (tile 1) will be correct. The 
+! shape of {\tt farray} must match the shape of the tile in Field. 
+! 
+! If the Field contains replicating DistGrid dimensions data will be 
+! gathered from the numerically higher DEs. Replicated data elements in 
+! numericaly lower DEs will be ignored. 
+! 
+! The implementation of Scatter and Gather is not sequence index based. 
+! If the Field is built on arbitrarily distributed Grid, Mesh, LocStream or XGrid, 
+! Gather will not gather data to rootPet 
+! from source data points corresponding to the sequence index on rootPet. 
+! Instead Gather will gather a contiguous memory range from source PET to 
+! rootPet. The size of the memory range is equal to the number of 
+! data elements on the source PET. Vice versa for the Scatter operation. 
+! In this case, the user should use {\tt ESMF\_FieldRedist} to achieve 
+! the same data operation result. For examples how to use {\tt ESMF\_FieldRedist} 
+! to perform Gather and Scatter, please refer to 
+! \ref{sec:field:usage:redist_gathering} and 
+! \ref{sec:field:usage:redist_scattering}. 
+! 
+! This version of the interface implements the PET-based blocking paradigm: 
+! Each PET of the VM must issue this call exactly once for {\em all} of its 
+! DEs. The call will block until all PET-local data objects are accessible. 
+! 
+! For examples and associated documentation regarding this method see Section 
+! \ref{sec:field:usage:gather_2dptr}. 
+! 
+! The arguments are: 
+! \begin{description} 
+! \item[field] 
+! The {\tt ESMF\_Field} object from which data will be gathered. 
+! \item[\{farray\}] 
+! The Fortran array into which to gather data. Only root 
+! must provide a valid {\tt farray}, the other PETs may treat 
+! {\tt farray} as an optional argument. 
+! \item[rootPet] 
+! PET that holds the valid destination array, i.e. {\tt farray}. 
+! \item[{[tile]}] 
+! The DistGrid tile in {\tt field} from which to gather {\tt farray}. 
+! By default {\tt farray} will be gathered from tile 1. 
+! \item[{[vm]}] 
+! Optional {\tt ESMF\_VM} object of the current context. Providing the 
+! VM of the current context will lower the method's overhead. 
+! \item[{[rc]}] 
+! Return code; equals {\tt ESMF\_SUCCESS} if there are no errors. 
+! \end{description} 
+! 
+!EOP 
+!---------------------------------------------------------------------------- 
+ 
+#ifndef PIO_TKR 
+#ifndef ESMF_NO_INTEGER_1_BYTE 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Di1 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Di1 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Di1 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Di1 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Di1 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Di1 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Di1(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i1), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Di1 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+#endif 
+#ifndef ESMF_NO_INTEGER_2_BYTE 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Di2 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Di2 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Di2 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Di2 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Di2 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Di2 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Di2(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i2), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Di2 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+#endif 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Di4 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Di8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather1Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather1Dr8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Di4 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Di8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather2Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather2Dr8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Di4 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Di8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather3Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather3Dr8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Di4 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Di8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather4Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather4Dr8 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef ESMF_NO_GREATER_THAN_4D 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Di4 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Di8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather5Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather5Dr8 
+!------------------------------------------------------------------------------ 
+ 
+#ifndef PIO_TKR 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Di4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Di8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather6Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather6Dr8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Di4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i4), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Di4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Di8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ integer (ESMF_KIND_i8), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Di8 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Dr4(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r4), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Dr4 
+!------------------------------------------------------------------------------ 
+ 
+!---------------------------------------------------------------------------- 
+#undef ESMF_METHOD 
+#define ESMF_METHOD "ESMF_FieldGather" 
+ subroutine ESMF_FieldGather7Dr8(field, farray, & 
+ rootPet, keywordEnforcer, tile, vm, rc) 
+
+ ! input arguments 
+ type(ESMF_Field), intent(in) :: field 
+ real (ESMF_KIND_r8), intent(out), target :: farray(:,:,:,:,:,:,:) 
+ integer, intent(in) :: rootPet 
+type(ESMF_KeywordEnforcer), optional:: keywordEnforcer ! must use keywords below 
+ integer, intent(in), optional :: tile 
+ type(ESMF_VM), intent(in), optional :: vm 
+ integer, intent(out), optional :: rc 
+
+ ! internal local variables 
+ integer :: localrc 
+ type(ESMF_Array) :: array 
+
+ ! Initialize return code; assume routine not implemented 
+ localrc = ESMF_RC_NOT_IMPL 
+ if(present(rc)) rc = ESMF_RC_NOT_IMPL 
+
+ ! check variable: focus on field and farray 
+ ! rely on ArrayGather to check the sanity of other variables 
+ ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc) 
+ ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc) 
+
+ call ESMF_FieldGet(field, array=array, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ ! perform gather through internal array 
+ call ESMF_ArrayGather(array, farray, rootPet=rootPet, tile=tile, & 
+ vm=vm, rc=localrc) 
+ if (ESMF_LogFoundError(localrc, & 
+ ESMF_ERR_PASSTHRU, & 
+ ESMF_CONTEXT, rcToReturn=rc)) return 
+
+ if (present(rc)) rc = ESMF_SUCCESS 
+ end subroutine ESMF_FieldGather7Dr8 
+!------------------------------------------------------------------------------ 
+ 
+#endif 
+#endif 
+ 
+! < end macro - do not edit directly > 
+!------------------------------------------------------------------------------ 
+
+! -------------------------- ESMF-public method -----------------------------
+#undef ESMF_METHOD
+#define ESMF_METHOD "ESMF_FieldGather"
+subroutine ESMF_FieldGatherNotRoot(field, tile, rootPet, vm, rc)
+        type(ESMF_Field), intent(in) :: field
+        integer, intent(in), optional :: tile
+        integer, intent(in) :: rootPet
+        type(ESMF_VM), intent(in), optional :: vm
+        integer, intent(out), optional :: rc
+        ! Local variables
+        integer :: localrc ! local return code
+        type(ESMF_Array) :: array
+        ! Initialize return code
+        localrc = ESMF_RC_NOT_IMPL
+        if (present(rc)) rc = ESMF_RC_NOT_IMPL
+        ! Check init status of arguments
+        ESMF_INIT_CHECK_DEEP(ESMF_FieldGetInit, field, rc)
+        ESMF_INIT_CHECK_DEEP(ESMF_VMGetInit, vm, rc)
+        call ESMF_FieldGet(field, array=array, rc=localrc)
+        if (ESMF_LogFoundError(localrc, &
+            ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT, rcToReturn=rc)) return
+        call ESMF_ArrayGather(array, rootPet=rootPet, tile=tile, vm=vm, &
+          rc=localrc)
+        if (ESMF_LogFoundError(localrc, &
+            ESMF_ERR_PASSTHRU, &
+            ESMF_CONTEXT, rcToReturn=rc)) return
+        ! Return successfully
+        if (present(rc)) rc = ESMF_SUCCESS
+end subroutine ESMF_FieldGatherNotRoot
+end module

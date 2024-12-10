@@ -1,0 +1,11 @@
+The prologue directory has two purposes:
+
+(1) It contains 3rd party software packages that are kept inside of the ESMF
+    source tree for easier maintenance. These sources are typically activated
+    by setting the respective ESMF_* build environment variable to "internal".
+    
+(2) The "test" subdirectory contains very basic sanity tests which must be
+    passed before any other tests in the framework are even attempted to be
+    compiled or run.
+
+

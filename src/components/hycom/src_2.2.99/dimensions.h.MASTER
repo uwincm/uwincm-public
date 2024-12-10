@@ -6,19 +6,25 @@ c --- itdm  = total grid dimension in i direction
 c --- jtdm  = total grid dimension in j direction
 c --- kdm   =       grid dimension in k direction
       integer    itdm,jtdm,kdm
-      parameter (itdm=1380,jtdm=980,kdm=41)  ! ATLd0.04
+      parameter (itdm=1380,jtdm=1100,kdm=41)  ! ATLd0.04
 c
 c --- iqr   = maximum number of tiles in i direction
 c --- jqr   = maximum number of tiles in j direction
       integer    iqr,jqr
-c     parameter (iqr= 8,jqr= 6)  !  48
-      parameter (iqr=16,jqr=12)  ! 192
+      parameter (iqr=6,jqr=4)  ! NMPI=24
+c     parameter (iqr=8,jqr=6)  ! NMPI=48
+c     parameter (iqr=12,jqr= 8)  !  96
+c     parameter (iqr=12,jqr=12)  ! 144
+c     parameter (iqr=16,jqr=12)  ! 192
 c
 c --- idm   = maximum single tile grid dimension in i direction
 c --- jdm   = maximum single tile grid dimension in j direction
       integer    idm,jdm
-c     parameter (idm= 173,jdm= 164)  !  48 @ ATLd0.04
-      parameter (idm=  87,jdm=  82)  ! 192 @ ATLd0.04
+      parameter (idm= 230,jdm= 275)  ! NMPI=24
+c     parameter (idm= 173,jdm= 184)  ! NMPI=48
+c     parameter (idm= 115,jdm= 138)  !  96
+c     parameter (idm= 115,jdm=  92)  ! 144
+c     parameter (idm=  87,jdm=  92)  ! 192
 c
 c --- mxthrd= maximum number of OpenMP threads
       integer    mxthrd

@@ -1,0 +1,113 @@
+%                **** IMPORTANT NOTICE *****
+% This LaTeX file has been automatically produced by ProTeX v. 1.1
+% Any changes made to this file will likely be lost next time
+% this file is regenerated from its source. Send questions 
+% to Arlindo da Silva, dasilva@gsfc.nasa.gov
+ 
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+\setlength{\baselineskip}{11pt}
+ 
+%--------------------- SHORT-HAND MACROS ----------------------
+\def\bv{\begin{verbatim}}
+\def\ev{\end{verbatim}}
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bea{\begin{eqnarray}}
+\def\eea{\end{eqnarray}}
+\def\bi{\begin{itemize}}
+\def\ei{\end{itemize}}
+\def\bn{\begin{enumerate}}
+\def\en{\end{enumerate}}
+\def\bd{\begin{description}}
+\def\ed{\end{description}}
+\def\({\left (}
+\def\){\right )}
+\def\[{\left [}
+\def\]{\right ]}
+\def\<{\left  \langle}
+\def\>{\right \rangle}
+\def\cI{{\cal I}}
+\def\diag{\mathop{\rm diag}}
+\def\tr{\mathop{\rm tr}}
+%-------------------------------------------------------------
+
+\markboth{Left}{Source File: NUOPC\_Driver.F90,  Date: Mon Mar 28 16:35:43 PDT 2011
+}
+
+\bigskip{\sf MODULE:}
+\begin{verbatim}  module NUOPC_Driver
+\end{verbatim}
+
+\bigskip{\sf DESCRIPTION:\\}
+Component that drives and coordinates initialization of its child components: Model, Mediator, and Connector components. For every Driver time step the same run sequence, i.e. sequence of Model, Mediator, and Connector {\tt Run} methods is called. The run sequence is fully customizable. The default run sequence implements explicit time stepping.
+
+\bigskip{\sf SUPER:}
+\begin{verbatim}  ESMF_GridComp
+\end{verbatim}
+
+\bigskip{\sf USE DEPENDENCIES:}
+\begin{verbatim}  use ESMF
+\end{verbatim}
+
+\bigskip{\sf SETSERVICES:}
+\begin{verbatim}  subroutine SetServices(driver, rc)
+    type(ESMF_GridComp)   :: driver
+    integer, intent(out)  :: rc
+\end{verbatim}
+
+\bigskip{\sf SEMANTIC SPECIALIZATION LABELS:}
+\begin{itemize}
+  \item Initialize:
+  \begin{itemize}
+    \item {\bf label\_SetModelServices}
+    \begin{itemize}
+      \item Optional. By default driver has no child components.
+      \item Use {\tt NUOPC\_DriverAddComp()} repeatedly to add child components to the driver.
+      \item Use {\tt NUOPC\_CompAttributeSet()} or {\tt NUOPC\_CompAttributeIngest()} to set attributes on child components.
+      \item Create and set driver clock with startTime, stopTime, and timeStep, if not done by the driver's parent.
+    \end{itemize}
+    \item {\bf label\_SetRunSequence}
+    \begin{itemize}
+      \item Optional. By default drive child components in the sequence they were added.
+      \item Define and set a RunSequence either by calling {\tt NUOPC\_DriverIngestRunSequence()}, or by using the {\tt NUOPC\_DriverNewRunSequence()} and {\tt NUOPC\_DriverAddRunElement()} API.
+    \end{itemize}
+    \item {\bf label\_ModifyInitializePhaseMap}
+    \begin{itemize}
+      \item Optional. By default InitializePhaseMap attributes are not modified.
+      \item Modify the InitializePhaseMap attribute on the child components as desired. This is very rarely needed.
+    \end{itemize}
+    \item {\bf label\_ModifyCplLists}
+    \begin{itemize}
+      \item Optional. By default CplList attributes are  not modified.
+      \item Modify the CplList attribute on the child components as desired. This can be useful to set custom Connection Options for specific Field pairs.
+    \end{itemize}
+  \end{itemize}
+  \item Run:
+  \begin{itemize}
+    \item {\bf label\_SetRunClock}
+      \begin{itemize}
+        \item Optional. By default driver clock is not modified each time its Run is entered.
+        \item Modify the driver clock before executing RunSequence. This is very rarely needed.
+      \end{itemize}
+    \item {\bf label\_ExecuteRunSequence}
+    \begin{itemize}
+      \item Optional. By default use NUOPC generic RunSequence execution.
+      \item Implement a custom RunSequence execution. This is very rarely needed.
+    \end{itemize}
+  \end{itemize}
+  \item Finalize:
+  \begin{itemize}
+    \item {\bf label\_Finalize}
+    \begin{itemize}
+      \item Optional. By default do nothing.
+      \item Destroy any objects created during Initalize.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+
+\mbox{}\hrulefill\ 
+
+%...............................................................
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+echo "Cleaning output/ and restart/ directories"
+rm -vf output/*
+rm -vf restart/*

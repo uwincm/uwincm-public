@@ -162,7 +162,7 @@ DO src=1,ngc
                       dstField   = xg%expField(n,tgt,src), &
                       remapRH    = xg%RHandleIn(src,tgt),  &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .TRUE.,                 &
+                      checkflag  = .FALSE.,                &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -172,7 +172,7 @@ DO src=1,ngc
                       dstField   = gc(src)%impField(n,tgt),&
                       remapRH    = xg%RHandleOut(src,tgt), &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .TRUE.,                 &
+                      checkflag  = .FALSE.,                &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -303,7 +303,7 @@ DO src=1,ngc
                       dstField   = xg%expField(n,tgt,src), &
                       remapRH    = xg%RHandleIn(src,tgt),  &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .TRUE.,                 &
+                      checkflag  = .FALSE.,                &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -332,7 +332,7 @@ DO src=1,ngc
                       dstField   = gc(src)%impField(n,tgt),&
                       remapRH    = xg%RHandleOut(src,tgt), &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .TRUE.,                 &
+                      checkflag  = .FALSE.,                &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO

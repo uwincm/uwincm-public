@@ -1,0 +1,59 @@
+&input_output
+ in_file          = './wrfinput_d01_ori'
+ t_start          = 1 
+ t_end            = 1  
+ t_interval       = 1
+ out_info_file    = 'vortex.log'
+/
+
+&first_guess
+ fg_lat           = 15.0  
+ fg_lon           = -80
+ search_range     = 0.
+/
+
+&definition
+ simple_output    = .false.
+ center_level_1   = 900.
+ center_level_2   = 700.
+ wind_level_type  = 2
+ wind_level_sigma = 1
+ wind_level_p     = 850.
+ basin = 'AL'
+ runmodel = 'CWRF'
+ hurnum = 01
+
+/
+
+&grads
+ output_grads     = .true.
+ out_grads_file   = 'az_file'
+ grads_level_type = 1
+ grads_p_interval = 10.
+ grads_r_start    = 0.
+ grads_r_end      = 1000.
+ grads_r_interval = 2.
+/
+&w2c
+ output_w2c       = .true.
+ out_cg_file      = 'cginput_d01'
+ ocean_model      = .false.
+/
+&cg_output
+ output_cg = .false.
+ exist_file1 = 0
+ exist_file2 = 0 
+ exist_file3 = 0 
+ in_file1 = 'dummy'
+ in_file2 = 'dummy'
+ in_file3 = 'dummy'
+ out_cg_file2='dummy'
+/
+&vorrel
+ vortexrelocation = .false.
+ inputcgfile1 = 'cgwrfout'
+ inputcgfile2 = 'cgwrfinput'
+ inputwrffile = 'wrfinputfile'
+ radius_1 = 0 
+ radius_2 = 0
+/ 

@@ -1,0 +1,7 @@
+*~
+/Makefile
+/do.download.cdsapi.pres.py
+/do.download.cdsapi.sfc.py
+/venv
+/*.grib
+

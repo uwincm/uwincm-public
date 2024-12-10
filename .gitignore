@@ -2,8 +2,9 @@
 *.a
 *.mod
 *.log
-*.exe
-*.inc
-Makefile
+log*
+/*.exe
+/*.inc
+/Makefile
 TODO
-uwincm
+/uwincm

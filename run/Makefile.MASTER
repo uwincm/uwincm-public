@@ -1,14 +1,14 @@
 WRF_VERSION = 3.9
 
-UWINCM_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides/uwincm
-PREPROC_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides
-WPS_PATH := $(PREPROC_PATH)/wps
+UWINCM_PATH = /your/directory/uwincm
+PREPROC_PATH = /your/directory
+WPS_PATH := $(PREPROC_PATH)/wrf_input
 HYCOM_DOMAIN_PATH := $(PREPROC_PATH)/hycom_domain
-RUN_PATH = /home/orca/bkerns/models/atl-tutorial-with-tides/uwincm/run
+RUN_PATH = /your/directory/uwincm/run
 
 
 WRF_PATH := $(UWINCM_PATH)/src/components/WRFV$(WRF_VERSION)
-UMWM_PATH := $(UWINCM_PATH)/src/components/umwm
+UMWM_PATH := $(UWINCM_PATH)/src/components/umwm3
 
 
 .PHONY: help
@@ -20,7 +20,7 @@ help:
 	@echo "make help                  -- Display this help message."
 	@echo "make link_wrf              -- Link WRF directory stuff."
 	@echo "make link_wps              -- Copy WPS stuff."
-	@echo "make link_hycom-domain     -- Copy HYCOM input stuff."
+	@echo "make link_hycom_domain     -- Copy HYCOM input stuff."
 	@echo "make link_hycom_tides      -- Copy HYCOM tidal forcing."
 	@echo "make link_umwm             -- UMWM input stuff."
 	@echo "make link_uwin             -- UWINCM model setup stuff."
@@ -45,7 +45,7 @@ link_wps:
 	cp $(WPS_PATH)/namelist.wps $(RUN_PATH)/.
 
 
-link_hycom-domain:
+link_hycom_domain:
 	mkdir -p $(RUN_PATH)/nest
 	echo 'Copy HYCOM boundary condition files to nest/' 
 	cp -n blkdat.input.MASTER blkdat.input
@@ -71,16 +71,11 @@ link_hycom_tides:
 
 
 link_umwm:
-	mkdir restart
-	mkdir input
-	mkdir namelists
-	mkdir output
-	cp $(UMWM_PATH)/namelists/main.nml $(RUN_PATH)/namelists/main.nml.bk
-	cp $(UMWM_PATH)/namelists/exclude.nml $(RUN_PATH)/namelists/exclude.nml.bk
-	cp  $(UMWM_PATH)/namelists/spectrum.nml $(RUN_PATH)/namelists/spectrum.nml.bk
-	ln -sf $(UMWM_PATH)/tools/umwm.gridtopo $(RUN_PATH)/input/umwm.gridtopo.bk
-	ln -sf $(UMWM_PATH)/tools/umwm.grid $(RUN_PATH)/input/umwm.grid.bk
-	ln -sf $(UMWM_PATH)/restart/* restart/.
+	echo "If this gives you broken links, make sure the executables in $(UMWM_PATH)/tools are built." 
+	ln -sf $(UMWM_PATH)/tools/src/umwm_gridgen $(RUN_PATH)/input/umwm_gridgen
+	ln -sf $(UMWM_PATH)/tools/src/umwm_topogen $(RUN_PATH)/input/umwm_topogen
+	ln -sf $(UMWM_PATH)/tools/src/wrf2umwmgrid $(RUN_PATH)/input/wrf2umwmgrid
+	ln -sf $(UMWM_PATH)/tools/src/wrf2umwmin $(RUN_PATH)/input/wrf2umwmin
 
 
 link_uwin:

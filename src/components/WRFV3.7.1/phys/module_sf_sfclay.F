@@ -847,19 +847,25 @@ CONTAINS
 ! AHW: change roughness length, and hence the drag coefficients Ck and Cd
           IF ( PRESENT(ISFTCFLX) ) THEN
              IF ( ISFTCFLX.NE.0 ) THEN
-!               ZNT(I)=10.*exp(-9.*UST(I)**(-.3333))
-!               ZNT(I)=10.*exp(-9.5*UST(I)**(-.3333))
-!               ZNT(I)=ZNT(I) + 0.11*1.5E-5/AMAX1(UST(I),0.01)
-!               ZNT(I)=0.011*UST(I)*UST(I)/G+OZO
-!               ZNT(I)=MAX(ZNT(I),3.50e-5)
+                IF(ESMF_CouplerStarted)THEN    ! uwin
+                   ZNT(I)=ZA(I)/exp(KARMAN*SQRT(UX(I)*UX(I)+VX(I)*VX(I))/UST(I) + PSIM(I))    ! uwin
+                   ZNT(I)=MIN(ZNT(I),2.00e-2)    ! uwin, arbitrary cap on roughness length
+                   ZNT(I)=MAX(ZNT(I),1.27e-7)    ! uwin
+                ELSE    ! uwin
+!                  ZNT(I)=10.*exp(-9.*UST(I)**(-.3333))
+!                  ZNT(I)=10.*exp(-9.5*UST(I)**(-.3333))
+!                  ZNT(I)=ZNT(I) + 0.11*1.5E-5/AMAX1(UST(I),0.01)
+!                  ZNT(I)=0.011*UST(I)*UST(I)/G+OZO
+!                  ZNT(I)=MAX(ZNT(I),3.50e-5)
 ! AHW 2012:
-                ZW  = MIN((UST(I)/1.06)**(0.3),1.0)
-                ZN1 = 0.011*UST(I)*UST(I)/G + OZO
-                ZN2 = 10.*exp(-9.5*UST(I)**(-.3333)) + &
-                       0.11*1.5E-5/AMAX1(UST(I),0.01)
-                ZNT(I)=(1.0-ZW) * ZN1 + ZW * ZN2
-                ZNT(I)=MIN(ZNT(I),2.85e-3)
-                ZNT(I)=MAX(ZNT(I),1.27e-7)
+                   ZW  = MIN((UST(I)/1.06)**(0.3),1.0)
+                   ZN1 = 0.011*UST(I)*UST(I)/G + OZO
+                   ZN2 = 10.*exp(-9.5*UST(I)**(-.3333)) + &
+                          0.11*1.5E-5/AMAX1(UST(I),0.01)
+                   ZNT(I)=(1.0-ZW) * ZN1 + ZW * ZN2
+                   ZNT(I)=MIN(ZNT(I),2.85e-3)
+                   ZNT(I)=MAX(ZNT(I),1.27e-7)
+                ENDIF    ! uwin
              ENDIF
           ENDIF
           ZL = ZNT(I)

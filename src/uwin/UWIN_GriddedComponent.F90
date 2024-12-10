@@ -177,11 +177,12 @@ SUBROUTINE create(self,id,numGriddedComponents,numImpFields,numExpFields,name,rc
   INTEGER,DIMENSION(2) :: atmdims,wavdims,ocndims
   INTEGER,DIMENSION(6) :: startDate,endDate
   INTEGER,DIMENSION(3) :: timeSteps
+  INTEGER :: uwinTimeSteps
 
   CHARACTER(LEN=3),DIMENSION(3),PARAMETER :: tags = ['ATM','WAV','OCN']
 
   NAMELIST /DIMENSIONS/ atmdims,wavdims,ocndims
-  NAMELIST /TIME/       startDate,endDate,timeSteps
+  NAMELIST /TIME/       startDate,endDate,timeSteps,uwinTimeSteps
 
   rc = ESMF_FAILURE
 

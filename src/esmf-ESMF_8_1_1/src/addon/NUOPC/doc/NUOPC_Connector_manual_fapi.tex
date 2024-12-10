@@ -1,0 +1,92 @@
+%                **** IMPORTANT NOTICE *****
+% This LaTeX file has been automatically produced by ProTeX v. 1.1
+% Any changes made to this file will likely be lost next time
+% this file is regenerated from its source. Send questions 
+% to Arlindo da Silva, dasilva@gsfc.nasa.gov
+ 
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+\setlength{\baselineskip}{11pt}
+ 
+%--------------------- SHORT-HAND MACROS ----------------------
+\def\bv{\begin{verbatim}}
+\def\ev{\end{verbatim}}
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bea{\begin{eqnarray}}
+\def\eea{\end{eqnarray}}
+\def\bi{\begin{itemize}}
+\def\ei{\end{itemize}}
+\def\bn{\begin{enumerate}}
+\def\en{\end{enumerate}}
+\def\bd{\begin{description}}
+\def\ed{\end{description}}
+\def\({\left (}
+\def\){\right )}
+\def\[{\left [}
+\def\]{\right ]}
+\def\<{\left  \langle}
+\def\>{\right \rangle}
+\def\cI{{\cal I}}
+\def\diag{\mathop{\rm diag}}
+\def\tr{\mathop{\rm tr}}
+%-------------------------------------------------------------
+
+\markboth{Left}{Source File: NUOPC\_Connector.F90,  Date: Mon Mar 28 16:35:43 PDT 2011
+}
+
+\bigskip{\sf MODULE:}
+\begin{verbatim}  module NUOPC_Connector
+\end{verbatim}
+
+\bigskip{\sf DESCRIPTION:\\}
+Component that makes a unidirectional connection between model, mediator, and or driver components. During initialization field pairing is performed between the import and export side according to section \ref{FieldPairing}, and paired fields are connected. By default the bilinear regrid method is used during {\tt Run} to transfer data from the connected import Fields to the connected export Fields.
+
+\bigskip{\sf SUPER:}
+\begin{verbatim}  ESMF_CplComp
+\end{verbatim}
+
+\bigskip{\sf USE DEPENDENCIES:}
+\begin{verbatim}  use ESMF
+\end{verbatim}
+
+\bigskip{\sf SETSERVICES:}
+\begin{verbatim}  subroutine SetServices(connector, rc)
+    type(ESMF_CplComp)    :: connector
+    integer, intent(out)  :: rc
+\end{verbatim}
+
+\bigskip{\sf SEMANTIC SPECIALIZATION LABELS:}
+\begin{itemize}
+  \item Initialize:
+  \begin{itemize}
+    \item {\bf label\_ComputeRouteHandle}
+    \begin{itemize}
+      \item Optional. By default compute routehandles according to CplList attribute.
+    \end{itemize}
+  \end{itemize}
+  \item Run:
+  \begin{itemize}
+    \item {\bf label\_ExecuteRouteHandle}
+    \begin{itemize}
+      \item Optional. By default execute routehandles stored in the Connector.
+    \end{itemize}
+  \end{itemize}
+  \item Finalize:
+  \begin{itemize}
+    \item {\bf label\_ReleaseRouteHandle}
+    \begin{itemize}
+      \item Optional. By default release routehandles stored in the Connector.
+    \end{itemize}
+    \item {\bf label\_Finalize}
+    \begin{itemize}
+      \item Optional. By default do nothing.
+      \item Destroy any objects created during Initalize.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\mbox{}\hrulefill\ 
+
+%...............................................................
+

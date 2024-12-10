@@ -1,0 +1,185 @@
+#!/bin/csh
+
+setenv infile in.w2c
+setenv main_dir_wrf	`grep 'wrfoutpath' $infile | awk '{ print $3 }'` 
+setenv CS_E 		`grep 'longitude' $infile | awk '{ print $3 }'`
+setenv CS_N 		`grep 'latitude' $infile | awk '{ print $3 }'`
+setenv w2c		`grep 'w2c' $infile | awk '{ print $3 }' `
+setenv d02_h		`grep 'd02(hour)' $infile | awk '{ print $3 }' ` 
+setenv d03_h		`grep 'd03(hour)' $infile | awk '{ print $3 }' ` 
+setenv YMDHm1		`grep 'starttime' $infile | awk '{ print $3 }' ` 
+setenv YMDHm2		`grep 'endtime' $infile | awk '{ print $3 }' ` 
+setenv interval		`grep 'interval' $infile | awk '{ print $3 }' ` 
+setenv hur_num_atcf     `grep 'hur_num' $infile | awk '{ print $3 }' `  
+setenv hur_num          `grep 'hur_num' $infile | awk '{ print $3 }' `
+setenv hur_name         `grep 'hur_name' $infile | awk '{ print $3 }' `
+
+
+#######################################################################
+setenv main_dir_wrf_track w2c
+set dummy = `echo $CS_E | sed  's/\..*.*.*//'`
+echo $dummy
+if ( ${dummy} > 0  ) then
+	setenv basin wpc
+	setenv basin_atcf WP
+else
+	setenv basin atl	  
+	setenv basin_atcf AL 
+endif
+if ( $w2c == 'y' ) then
+	setenv w2cout true 
+	setenv cgout  true 
+else
+	setenv w2cout false 
+	setenv cgout  false 
+endif
+
+## Initial standard output  #################################
+echo '---------------------------------------------------------------------'
+echo Basin is: ${basin}. Storm name is $hur_name. Storm number is $hur_num.  ## TODO: Should basin be set in input file?
+echo Specified times: $YMDHm1 to $YMDHm2 at $interval minute intervals.
+echo Final ATCF format output will be at: ${main_dir_wrf_track}/${hur_name}_${hur_num}.log
+echo Final  CSV format output will be at: ${main_dir_wrf_track}/${hur_name}_${hur_num}.csv
+if ( $cgout == true ) then
+	echo NetCDF format 3-D CG output will be at: ${main_dir_wrf_track}/cg_'*'
+else
+	echo 3-D CG output not specified.
+endif
+echo '---------------------------------------------------------------------'
+#############################################################
+
+mkdir $main_dir_wrf_track 
+cp -r  ./scripts/* ${main_dir_wrf_track}/.
+cp ./vortex.exe ${main_dir_wrf_track}/.
+cp ./cg.exe ${main_dir_wrf_track}/.
+setenv YMD1 	` echo $YMDHm1 | cut -c 1-8`
+setenv Y1    	` echo $YMDHm1 | cut -c 1-4`
+setenv M1	` echo $YMDHm1 | cut -c 5-6`
+setenv D1	` echo $YMDHm1 | cut -c 7-8`
+setenv H1 	` echo $YMDHm1 | cut -c 9-10`
+setenv hh	` echo $YMDHm1 | cut -c 9-10` 
+setenv mm1    	` echo $YMDHm1 | cut -c 11-12`
+setenv Y2    	` echo $YMDHm2 | cut -c 1-4`
+setenv M2	` echo $YMDHm2 | cut -c 5-6`
+setenv D2	` echo $YMDHm2 | cut -c 7-8`
+setenv H2 	` echo $YMDHm2 | cut -c 9-10`
+setenv mm2    	` echo $YMDHm2 | cut -c 11-12`
+setenv smon	`date --date="$Y1-$M1-$D1" +%h`
+setenv sjd	`date +%j -d "$smon $D1 $H1 $Y1"`
+setenv emon	`date --date="$Y2 -$M2-$D2" +%h`
+setenv ejd	`date +%j -d "$emon $D2 $H2 $Y1"`
+@ totalfsthour = ( $ejd - $sjd ) * 24 - ( $H1 - $H2 )
+@ totalfstmin  = ${totalfsthour} * 60 - ( $mm1 - $mm2 )
+
+#######################################
+#### read infomation from namelist ####
+#######################################
+@ countnum = 0
+@ count = 00
+setenv namelist ${main_dir_wrf}"/namelist.input"
+setenv nx  `grep ' e_we '        $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+setenv ny `grep ' e_sn '        $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+setenv dx `grep ' dx '          $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+setenv dy `grep ' dy '          $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+setenv omcall `grep ' omlcall '     $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+setenv mdomain `grep ' max_dom '     $namelist | cut -d ","  -f1 | cut -d "=" -f2`
+
+if ( $omcall == 1 ) then
+    setenv oceanswitch TRUE
+    setenv coupled_type ao
+    setenv modelname_atcf CWF
+else
+    setenv oceanswitch false
+    setenv coupled_type ua
+    setenv modelname_atcf WRF
+endif
+set inithour = ( 0  ${d02_h} ${d03_h} 99 )
+@ fstmin = 0
+while ( $fstmin <= $totalfstmin )
+	setenv umon `date --date="$Y1-$M1-$D1" +%h`
+	setenv imonth1 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin minute" +%m`
+	setenv idate1 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin minute" +%d`
+	setenv ihour1 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin minute" +%H`
+	setenv imin1 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin minute" +%M`
+	echo $umon $imonth1 $idate1 $ihour1
+ 	echo ${main_dir_wrf}'/wrfout_d01_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'
+	@ dummy = $fstmin / 60
+	setenv runhour $dummy
+
+	if ( -e ${main_dir_wrf}'/wrfout_d01_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00' ) then 
+		if ( $fstmin < ${totalfstmin} ) then
+        	@ fstmin2 = $fstmin + $interval
+			setenv imonth2 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin2 minute" +%m`
+			setenv idate2 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin2 minute" +%d`
+			setenv ihour2 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin2 minute" +%H`
+			setenv imin2 `date --date="$Y1-$M1-$D1 +$H1 hour + $fstmin2 minute" +%M`
+			if ( ! -e ${main_dir_wrf}'/wrfout_d01_'$Y1'-'$imonth2'-'$idate2'_'$ihour2':'$imin2':00' ) then
+             	echo 'no wrfout_d01_'$Y1'-'$imonth2'-'$idate2'_'$ihour2':'$imin2':00 sleep 10min'
+	     		sleep 600
+			endif
+     	else if ( $fstmin == ${totalfstmin} ) then
+            echo 'last output'
+    	endif
+
+		@ ndomain = $mdomain
+	 	@ test_id = $mdomain + 1
+		setenv domain_id $test_id
+		@ trackcount = 1
+	 	while($ndomain <= $mdomain & $ndomain >= 1)
+	 		echo 'domainid' $domain_id $ndomain
+			@ fsthour = $fstmin / 60
+			echo $fsthour  $inithour[$ndomain]
+			if ( $fsthour >= $inithour[$ndomain] ) then
+	   			setenv domain_id $ndomain
+	   			setenv wrfoutfile 'wrfout\_d0'$ndomain'\_'$Y1'\-'$imonth1'\-'$idate1'\_'$ihour1'\:'$imin1'\:00' 
+				ln -sf ${main_dir_wrf}'/wrfout_d0'$ndomain'_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00' ${main_dir_wrf_track}
+	   			setenv cg_out_file1 'cg\_d0'$ndomain'\_'$Y1'\-'$imonth1'\-'$idate1'\_'$ihour1'\:'$imin1'\:00' 
+	  		endif 
+
+	  		if ( $domain_id <= $mdomain  && $trackcount == 1 ) then
+	   			if ( $fstmin == 0 ) then
+	   				chmod 755 ${main_dir_wrf_track}/vortexinit.csh
+	   				${main_dir_wrf_track}/vortexinit.csh
+	  			else
+					echo 'updating'
+	   				chmod 755 ${main_dir_wrf_track}/vortexupdate.csh
+	   				${main_dir_wrf_track}/vortexupdate.csh
+	  			endif
+                                 @ trackcount = $trackcount + 1
+	   		else if ( $domain_id <= $mdomain  ) then
+				echo 'updating domain'
+	 			${main_dir_wrf_track}/vortex.csh
+	  		endif
+	  		@ ndomain = $ndomain - 1
+		 end
+
+		if ( $w2c == 'y' ) then
+			@ cdomain = 1
+            setenv exist_file1 0
+            setenv exist_file2 0
+            setenv exist_file3 0
+            while ( $cdomain <= $mdomain ) 
+                if ( -e ${main_dir_wrf_track}/'cg_d0'$cdomain'_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00') then 
+                    setenv cg_$cdomain 'cg_d0'$cdomain'_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'
+                    setenv exist_file$cdomain 1
+                else
+                    setenv cg_$cdomain nan
+                    setenv exist_file$ndomain 0
+                endif
+                @ cdomain = $cdomain + 1
+            end
+            ${main_dir_wrf_track}/cg.sh
+            mv ${main_dir_wrf_track}/'cg_d01_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00' ${main_dir_wrf_track}/'cg_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'
+            rm -f ${main_dir_wrf_track}/'cg_d02_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'
+            rm -f ${main_dir_wrf_track}/'cg_d03_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'
+        endif
+
+
+		@ fstmin = $fstmin + $interval
+
+	else
+  		echo 'sleep 10 min for wrfout_d01_'$Y1'-'$imonth1'-'$idate1'_'$ihour1':'$imin1':00'  
+  		sleep 600
+	endif
+end
+

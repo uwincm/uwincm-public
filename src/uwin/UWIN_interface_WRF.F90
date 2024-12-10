@@ -20,7 +20,7 @@ TYPE domain_ptr
   TYPE(domain),POINTER :: Ptr
 ENDTYPE domain_ptr
 
-TYPE(domain_ptr),DIMENSION(3) :: dom
+TYPE(domain_ptr),DIMENSION(10) :: dom
 
 CONTAINS
 !===============================================================================

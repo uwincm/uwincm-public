@@ -1,0 +1,140 @@
+%                **** IMPORTANT NOTICE *****
+% This LaTeX file has been automatically produced by ProTeX v. 1.1
+% Any changes made to this file will likely be lost next time
+% this file is regenerated from its source. Send questions 
+% to Arlindo da Silva, dasilva@gsfc.nasa.gov
+ 
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+\setlength{\baselineskip}{11pt}
+ 
+%--------------------- SHORT-HAND MACROS ----------------------
+\def\bv{\begin{verbatim}}
+\def\ev{\end{verbatim}}
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bea{\begin{eqnarray}}
+\def\eea{\end{eqnarray}}
+\def\bi{\begin{itemize}}
+\def\ei{\end{itemize}}
+\def\bn{\begin{enumerate}}
+\def\en{\end{enumerate}}
+\def\bd{\begin{description}}
+\def\ed{\end{description}}
+\def\({\left (}
+\def\){\right )}
+\def\[{\left [}
+\def\]{\right ]}
+\def\<{\left  \langle}
+\def\>{\right \rangle}
+\def\cI{{\cal I}}
+\def\diag{\mathop{\rm diag}}
+\def\tr{\mathop{\rm tr}}
+%-------------------------------------------------------------
+
+\markboth{Left}{Source File: NUOPC\_Model.F90,  Date: Mon Mar 28 16:35:43 PDT 2011
+}
+
+\bigskip{\sf MODULE:}
+\begin{verbatim}  module NUOPC_Model
+\end{verbatim}
+
+\bigskip{\sf DESCRIPTION:\\}
+Model component with a default {\em explicit} time dependency. Each time the {\tt Run} method is called the model integrates one timeStep forward on the passed in parent clock. The internal clock is advanced at the end of each {\tt Run} call. The component flags incompatibility during {\tt Run} if the current time of the incoming clock does not match the current time of the internal clock.
+
+\bigskip{\sf SUPER:}
+\begin{verbatim}  NUOPC_ModelBase
+\end{verbatim}
+
+\bigskip{\sf USE DEPENDENCIES:}
+\begin{verbatim}  use ESMF
+\end{verbatim}
+
+\bigskip{\sf SETSERVICES:}
+\begin{verbatim}  subroutine SetServices(model, rc)
+    type(ESMF_GridComp)   :: model
+    integer, intent(out)  :: rc
+\end{verbatim}
+
+\bigskip{\sf SEMANTIC SPECIALIZATION LABELS:}
+\begin{itemize}
+  \item Initialize:
+  \begin{itemize}
+    \item {\bf label\_Advertise}
+    \begin{itemize}
+      \item Required in order to advertise fields.
+      \item Use {\tt NUOPC\_Advertise()} to advertise specific fields in the Import- and ExportState of the component.
+      \item Alternatively set the FieldTransferPolicy attribute on the Import- and ExportState of the component to request field mirroring.
+    \end{itemize}
+    \item {\bf label\_ModifyAdvertised}
+    \begin{itemize}
+      \item Optional. By default do not modify the advertised fields.
+      \item Mostly used when field mirroring was requested during Advertise.
+      \item Remove undesired advertised fields in the Import- and ExportState of the component.
+      \item Adjust attributes e.g. for TransferOffer on advertised fields.
+    \end{itemize}
+    \item {\bf label\_RealizeProvided}
+    \begin{itemize}
+      \item Required in order to realize fields.
+      \item Use {\tt NUOPC\_Realize()} to realize fields previously advertised, and for which this component is responsible for providing the Field allocation and/or the GeomObject.
+    \end{itemize}
+    \item {\bf label\_AcceptTransfer}
+    \begin{itemize}
+      \item Optional. By default accept the Distribution of the transferred GeomObjects.
+      \item Change the distribution of any of the transferred GeomObjects.
+    \end{itemize}
+    \item {\bf label\_RealizeAccepted}
+    \begin{itemize}
+      \item Optional. Needed for any fields for which component is accepting the GeomObject.
+      \item Use {\tt NUOPC\_Realize()} to realize fields previously advertised, and for which this component is accepting the GeomObject.
+    \end{itemize}
+    \item {\bf label\_SetClock}
+    \begin{itemize}
+      \item Optional. By default create clock according to time information provided by driver.
+      \item Adjust and set the component clock.
+    \end{itemize}
+    \item {\bf label\_DataInitialize}
+    \begin{itemize}
+      \item Optional. Needed to initialize data, and to participate in resolution of data dependencies between components during initialize.
+      \item Initialize data in fields.
+      \item Set NUOPC attributes used for data dependency resolution.
+    \end{itemize}
+  \end{itemize}
+  \item Run:
+  \begin{itemize}
+    \item {\bf label\_Advance}
+    \begin{itemize}
+      \item Called every timeStep on the component internal clock.
+      \item Implement the forward integration of the model.
+      \item Ensure data in the export fields is updated before returning.
+    \end{itemize}
+    \item {\bf label\_AdvanceClock}
+    \begin{itemize}
+      \item Optional. By default the component internal clock is advanced by one internal timeStep at the end of the Advance step.
+    \end{itemize}
+    \item {\bf label\_CheckImport}
+    \begin{itemize}
+      \item Optional. By default check the timestamp of all import fields against the current time of the internal clock.
+    \end{itemize}
+    \item {\bf label\_SetRunClock}
+    \begin{itemize}
+      \item Optional. By default do not adjust the internal clock when entering Run.
+    \end{itemize}
+    \item {\bf label\_TimestampExport}
+    \begin{itemize}
+      \item Optinal. By default timestamp all export fields according to the current time of the component internal clock before returning.
+    \end{itemize}
+  \end{itemize}
+  \item Finalize:
+  \begin{itemize}
+    \item {\bf label\_Finalize}
+    \begin{itemize}
+      \item Optional. By default do nothing.
+      \item Destroy any objects created during Initalize.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\mbox{}\hrulefill\ 
+
+%...............................................................
