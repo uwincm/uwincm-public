@@ -1,4 +1,4 @@
-# Unified Wave INterface - Coupled Model (UWIN-CM)
+# Unified Wave INterface - Coupled Model (UWIN-CM), Version 1.0
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
 developed by Prof. Shuyi S. Chen and Milan Curcic and maintained by Brandon Kerns since 2017.
@@ -6,6 +6,12 @@ developed by Prof. Shuyi S. Chen and Milan Curcic and maintained by Brandon Kern
 Several others have contributed improvements to the model code, including Dalton Kai Sasaki, Benjamin Barr, and Ajda Savarin.
 
 **This code is being transferred to the UWIN-CM group on GitHub.**
+
+This public release repository is copied over from the private development version (tag: 1.0, March 2023). It tracks the major version changes to UWIN-CM, and it also has some version tags that are specific to publications.
+
+Note: The development repository uses submodules for the UMWM (wave model) code. This version has all the submodules "flattened," i.e., included directly in the repository. Therefore, it is not necessary to use the --recursive option when cloning it. The instructions below have two changes from the development repo:
+- No recursive flags.
+- The repository link is changed from Gitlab to Github.
 
 
 ## Getting started
@@ -18,35 +24,11 @@ The *dev* branch has more updates and features, but may have bugs.
 In order to ensure that you're getting the full content of any submodules, use `-b dev` when cloning the dev branch.
 
 #### -- Checking out the master branch --
-If you're using an SSH token to authenticate with GitLab, 
 clone the repo like this:
 
 ```
-git clone --recursive git@gitlab.com:uwincm/uwincm.git
+git clone --recursive git@github.com:uwincm/uwincm-public.git
 ```
-
-Otherwise, if you're using a username/password method to authenticate,
-clone the repo like this:
-
-```
-git clone --recursive https://gitlab.com/uwincm/uwincm.git
-```
-
-#### -- Checking out the dev branch --
-If you're using an SSH token to authenticate with GitLab, 
-clone the repo like this:
-
-```
-git clone --recursive -b dev git@gitlab.com:uwincm/uwincm.git
-```
-
-Otherwise, if you're using a username/password method to authenticate,
-clone the repo like this:
-
-```
-git clone --recursive -b dev https://gitlab.com/uwincm/uwincm.git
-```
-
 
 ### Setting up the environment
 
