@@ -233,7 +233,7 @@ S-Z(15-11): dp00/f/x/i=3m/1.125/12m/1m; ds=1m/1.125/4m; src_2.2.34;
    0.25   'drgscl' = TIDES: scale factor for tidal drag (0.0 when tiddrg=0)
    0	  'tidgen' = TIDES: generic time (0=F,1=T)
    0.0	  'tidrmp' = TIDES:            ramp time (days)
-40420.75  'tid_t0' = TIDES: origin for ramp time (model day)
+40415.00  'tid_t0' = TIDES: origin for ramp time (model day)
   12	  'clmflg' = climatology frequency flag   (6=bimonthly, 12=monthly)
    3	  'wndflg' = wind stress input flag (0=none,1=u/v-grid,2,3=p-grid)
    2      'ustflg' = ustar forcing     flag        (3=input,1,2=wndspd,4=stress)

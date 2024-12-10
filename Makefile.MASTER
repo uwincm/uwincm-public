@@ -29,11 +29,11 @@ endif
 
 # display emsf compile-time settings
 esmf_info:
-	$(MAKE) info -C src/esmf
+	$(MAKE) info -C $(ESMF_DIR)
 
 # build esmf
 esmf:
-	$(MAKE) -C src/esmf
+	$(MAKE) -C $(ESMF_DIR)
 
 # build wrf; must be configured first
 wrf:
@@ -68,7 +68,7 @@ clean:
 	rm -rv uwincm
 
 clean_esmf:
-	$(MAKE) clean -C src/esmf
+	$(MAKE) clean -C $(ESMF_DIR)
 
 clean_wrf:
 	cd src/components/WRFV$(wrf_version) && clean -al

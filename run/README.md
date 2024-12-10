@@ -15,6 +15,15 @@ The Makefile is organized in sections. The most useful Makefile commands are:
 - `make clean_run` Clears the model output files (wrfout, archv, PET, ect).
 
 
+## Boundary conditions for HYCOM.
+
+Use the script cpfile.sh to link or copy the HYCOM boundary conditions to the nest/ directory.
+
+usage: cpfile.sh [-c] prefix_to_archv_files
+- Will use the files prefix_to_archv_files*.[ab].
+- Specify -c to copy instead of ln -sf.
+
+
 ## UWIN-CM namelist options.
 
 The **uwin.nml** file controls the couples system start and end times, exchange grid settings, and which coupling pathways are active. Here is an example from Hurricane Irene:

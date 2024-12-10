@@ -1,33 +1,51 @@
-# Unified Wave INterface - Coupled Model (UWIN-CM), Version 1.0
+# Unified Wave INterface - Coupled Model (UWIN-CM)
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
 developed by Prof. Shuyi S. Chen and Milan Curcic and maintained by Brandon Kerns since 2017.
 
 Several others have contributed improvements to the model code, including Dalton Kai Sasaki, Benjamin Barr, and Ajda Savarin.
 
-**This code is being transferred to the UWIN-CM group on GitHub.**
-
-This public release repository is copied over from the private development version (tag: 1.0, March 2023). It tracks the major version changes to UWIN-CM, and it also has some version tags that are specific to publications.
-
-Note: The development repository uses submodules for the UMWM (wave model) code. This version has all the submodules "flattened," i.e., included directly in the repository. Therefore, it is not necessary to use the --recursive option when cloning it. The instructions below have two changes from the development repo:
-- No recursive flags.
-- The repository link is changed from Gitlab to Github.
+**This code was originally on Gitlab. This version here on Github is the latest.**
 
 
 ## Getting started
 
 ### Getting the source code
 
-The *master* branch is the most stable and tested.
-The *dev* branch has more updates and features, but may have bugs.
-
-In order to ensure that you're getting the full content of any submodules, use `-b dev` when cloning the dev branch.
++ Version tags are "official" releases. The most recent is v1.0.
++ The *master* branch is the most updated, stable and tested.
++ The *dev* branch has more updates and features, but may have bugs.
 
 #### -- Checking out the master branch --
-clone the repo like this:
+The master branch is the latest "official" version of UWIN-CM. It is the safest and most stable branch to use.
 
+If you have added an SSH key from your local system to your GitHub account, you can clone the repo like this:
 ```
-git clone --recursive git@github.com:uwincm/uwincm-public.git
+git clone --recursive git@github.com:uwincm/uwincm.git
+```
+
+Alternatively, if you have set up HTTPS access, you can clone the repo like this:
+```
+git clone --recursive https://github.com/uwincm/uwincm.git
+```
+NOTE: This method is more involved than before, since username/password authentication is no longer allowed. See 
+[Caching your GitHub credentials in Git](https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git).
+
+
+#### -- Checking out the dev branch --
+The dev branch may have recent updates not yet included in master.
+
+In order to ensure that you're getting the full content of any submodules, use `-b dev` when cloning the dev branch
+rather than cloning master and manually switching to dev.
+
+For the SSH key access, clone the repo like this:
+```
+git clone --recursive -b dev git@github.com:uwincm/uwincm.git
+```
+
+And for HTTPS:
+```
+git clone --recursive -b dev https://github.com/uwincm/uwincm.git
 ```
 
 ### Setting up the environment
@@ -36,13 +54,12 @@ The `env` directory contains scripts for setting up the environment
 on a specific compute system. If the script for the desired system
 is not available, you can create one and contribute it to the repo,
 or request it by [opening an issue](https://gitlab.com/uwincm/uwincm/issues/new).
+In general, these scripts set the environment that you would use with uncoupled WRF
+in addition to the ESMF environment variables.
 
-Set up your environment by typing:
-```
-source env/set_env_<platform>.sh
-```
-* For running on the orca nodes o1 - o8, <platform> is "orca". Compile on orca server.
-* For running on the orca nodes o9 - o11, <platform> is "o9". Compile on o9.
+Set up your environment sourcing the relevant script in the env/ directory:
+* For running on the orca nodes o1 - o8, use `source env/set_env_orca.sh`.
+* For running on the orca nodes o9 - o11, use `source env/set_env_o9.sh`.
 
 The environment scripts must be sourced from the top-level directory.
 Currently only bash shell is supported.
@@ -50,7 +67,6 @@ Currently only bash shell is supported.
 
 ### Building the model
 First copy Makefile.MASTER to Makefile. Select the versions of WRF, HYCOM and UMWM that you will be using.
-
 
 To build UWIN-CM, you need to build ESMF, WRF, UMWM, HYCOM, and UWIN. 
 WRF, UMWM, and HYCOM can be built in any order, but ESMF has to be built first,
@@ -68,7 +84,7 @@ or `make esmf_info` to display compile-time options for building ESMF.
 
 #### Compile WRF
 
-Choose appropriate verion (3.6.1, 3.7.1, 3.8.1, 3.9, or one of the modified 3.9 versions) and run the configure script in the respective WRF directory. On orca, the compiling option selection that works is 15. In general, for the nesting option we select 3 for vortex following. These are the options that we are presented with on orca:
+Choose appropriate verion (3.6.1, 3.7.1, 3.8.1, 3.9, or one of the modified 3.9 versions) and run the configure script in the respective WRF directory. For example, for WRFV3.9, you would get into the directory **src/components/WRFV3.9**, run the `./configure` script, then run `./compile em_real`. On orca, the compiling option selection that works is 15. This is the same for the nodes o1 - o8 and for o9 - o12. In general, for the nesting option we select 3 for vortex following. These are the options that we are presented with on orca:
 ```
 Please select from among the following Linux x86_64 options:
 
@@ -191,17 +207,21 @@ From the top-level directory, type:
 ```
 make umwm
 ```
+(Note that this will compile UMWM3, which is set in the Makefile.)
 
 
 #### Compile HYCOM
 
 This applies to version 2.2.34, 2.2.34_coldstart, and 2.2.99 in non-RELO mode.
-In the directory like `src/components/hycom/src_2.2.34/`, copy `dimensions.h.MASTER to `dimensions.h`
+Currently, we are using 2.2.99 for running the model and 2.2.34_coldstart for the 
+cold start run used in [hycom-domain](https://github.com/uwincm/hycom-domain).
+In the directory like **src/components/hycom/src_2.2.99**, copy `dimensions.h.MASTER to `dimensions.h`
 and edit `dimensions.h` with the appropriate domain and tile dimensions.
 Then from the top-level directory, type:
 ```
 make hycom
 ```
+
 
 #### Compile UWIN
 
@@ -210,6 +230,130 @@ the top-level directory:
 ```
 make uwincm
 ```
+
+
+### Setting up and managing run directories.
+
+A template run directory is provided in the run/ directory. See the [run directory README.md](run/README.md) for more details. In summary, the namelist files are copied from MASTER files, and the static inputs and initial/boundary conditions for each model component are copied or linked into the run directory using the run/Makefile and the script run/cpfile.sh.
+
+You can have more than one run directory beneath this parent uwincm directory! A common and useful work flow is to make entire copies of a run directory in order to change something in the namelists, turn on/off coupling, change initialization time, vortex relocation, and so on. To make copies of run directories without having to copy over any output that has been produced, the script copy_run_directory_excluding_output.sh is included. Use it like `copy_run_directory_excluding_output.sh run copy_of_run`. 
+
+
+### Helpful scripts for managing run directories and model output.
+
+#### Copying run directories
+
+A common work flow is to set up a run directory, then make copies of it to run the model with small changes. This is useful for testing purposes and sensitivity tests. For example, you may set up an initial run directory to get something to run in uncoupled mode, then make a copy to turn on the ocean, then another copy to turn on ocean and waves. Or perhaps you are testing different vortex relocations for a hurricane case.
+
+To avoid making unnecessary copies of many large output files, the script [copy](copy_run_directory_excluding_output.sh) can be used. For example, to copy **run/** to **run2**, you would invoke `copy_run_directory_excluding_output.sh run run2`.
+
+
+#### Compressing model output
+
+High resolution models can produce very large volumes of output data, on the order of terabytes per run!
+
+There are several approaches you can take to minimize your "disk space footprint":
+- Delete old run directories that were for testing purposes and won't be used for production.
+- Delete the wrfrst and/or umwmrst files from run directories in which restarting will not be necessary. Each wrfrst file takes up around TEN wrfout files worth of disk space!
+  * Tip: You can keep the last restart files in case you might need to extend the run!
+- gzip the HYCOM archv a files. Many analysis softwares like Python can addess .gz files directly, at the cost of some performance.
+  * I like to use [pigz](https://zlib.net/pigz/) to gzip the files in parallel, e.g., `pigz -n 10 archv*.a` to do all of the archv a files in parallel using 10 cores.
+- Compress the other outputs, especially wrfout (and wrfrst if you want to keep them). 
+
+
+#### Compressing model output
+
+UWIN-CM output by default is NOT compressed. Using NetCDF compression can reduce the file sizes significantly. There is a script [compress_output.sh](run/compress_output.sh) that can accomplish this. The easiest way is to specify "all" NetCDF output files, e.g., `./compress_output.sh all`. Alternately, you can specify which sets of files you want to do. Specify one of more of: wrfout, wrfrst, cplout, umwmout, umwmrst. For example, to do wrfout only, call it like `./compress_output.sh wrfout`. Don't worry about double compressing things, as the script will check whether the files are already compressed.
+
+
+## Restarting model runs
+
+For various reasons, you may need to restart a UWIN-CM run.
+* The run needs to be extended beyond the time period you originally specified.
+* Re-run a portion of the run with an additional inner nest.
+* A portion of the run needs to be re-run with different physics, nudging options, etc.
+* The run crashed or got hung up before completing and you need to finish the run.
+
+### Determining the Restart Time
+
+Unfortunately, we cannot restart the model from any time. There needs to be a set of restart files **valid at the same time** for each model component, e.g., WRF, HYCOM, and UMWM3. The restart files are named like this (relative to run/ directory):
+* For WRF: **wrfrst_d01_2017-09-20_06:00:00**
+  - There needs to be a wrfrst file for each domain you wish to restart.
+* For UMWM3: **restart/umwmrst_2017-09-20_06:00:00.nc**
+* for HYCOM: **restart_out.[ab]**, **restart_out1.[ab]** (You can use either file, they will have different valid times).
+
+The valid times of these files are controlled by the namelists. *These should be set to the same time intervals so there is a set of restart files at each time.*
+* For WRF: in **namelist.input**: `restart_interval                    = 360,` (in minutes)
+* For UMWM3: in **namelists/main.nml**: `outrst        = 6` (in hours)
+* For HYCOM: in **blkdat.input**: `   0.25   'rstrfq' = number of days between model restart output` (in days)
+  - *For HYCOM, only the last two restart files are retained.* They will get over-written as the run progresses.
+  - HYCOM will usually be the limiting factor for choosing the restart time.
+
+To get the valid times:
+* The valid times of wrfrst and umwmrst are indicated in the file names.
+* The valid times of the HYCOM files are trickier. See the top of the .b file. The valid time is on the second line. But it is a HYCOM decimal time. Easiest way to figure out what time it represents is to compare it with your restart_in.b file.
+```$ head restart_out1.b                                                                                              [13:11:15]
+RESTART2: iexpt,iversn,yrflag,sigver =    201    22     3     6
+RESTART2: nstep,dtime,thbase =     61390440   42632.2500000000        34.0000000000000
+u       : layer,tlevel,range =   1  1    -1.9490675E+00   1.7865663E+00
+u       : layer,tlevel,range =   2  1    -1.9309760E+00   1.7643423E+00
+```
+In this case, the restart_in.b file has a valid time of 42630.0, which is the model start time of 2017-09-18 00Z.
+```$ head restart_in.b                                                                                                [12:57:34]
+RESTART2: iexpt,iversn,yrflag,sigver =    930    22     3     2
+RESTART2: nstep,dtime,thbase =     15346800   42630.000000000000        34.0000000
+u       : layer,tlevel,range =   1  1    -1.5812533E+00   2.1143599E+00
+u       : layer,tlevel,range =   2  1    -1.5835017E+00   2.1519227E+00
+Therefore, the valid time of this file is 2.25 days later, 2017-09-20 06Z.
+
+In this example, we have valid restart files for all three components for 2017-09-20 06Z, so let's use that as the restart time.
+
+(This example was for a run that got hung up at the valid time 2017-09-20 09Z, so it will be repeating 3 h of output.)
+
+
+### Setting Up the Restart Run
+
+#### Edit namelists
+- The model start time needs to be set to the restart time in: **uwin.nml**, **namelist.input**, **namelists/main.nml**.
+- In **namelist.input**, set `restart                             = .t.,`
+- In **namelists/main.nml**, set `restart      = .true.`
+- In **blkdat.input**, update the tides reference time to match the restart time: `42632.25  'tid_t0' = TIDES: origin for ramp time (model day)`
+
+#### Remove or rename overlapping HYCOM output files
++++ *HYCOM will CRASH* if it tries to write to an output file that already exist +++
+
+Therefore, we need to get rid of files that already exist and that HYCOM will try to write to in the restart run.
+- Delete archv a, b, and txt files that are after the restart time. In this case,
+```
+rm archv.2017_263_07.*
+rm archv.2017_263_08.*
+rm archv.2017_263_09.*
+```
+
+I also usually `rm summary.out` and `rm ovrtn.out` if they exist, just to be safe.
+
+#### Deal with HYCOM restart files.
+
+HYCOM always runs as a restart run, using restart_in.[ab] as "initial conditions."
+
+It is recommended to rename the original restart_in files in case you re-run from the beginning:
+```
+mv restart_in.a restart_in.a.orig
+mv restart_in.b restart_in.b.orig
+```
+Next, re-name the restart_out files to restart_in. In this case:
+```
+mv restart_out1.a restart_in.a
+mv restart_out1.b restart_in.b
+```
+Finally, it is recommended to rename the other restart_out files in case you need them:
+```
+mv restart_out.a restart_out.a.bak
+mv restart_out.b restart_out.b.bak
+```
+
+Finally, you should be able to submit the run as you would a regular run: `qsub job.sh`.
+
 
 ## Further reading
 

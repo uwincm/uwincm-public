@@ -1,14 +1,27 @@
+############ These need to be manually edited. ###########
+
+## Set the version of WRF here.
 WRF_VERSION = 3.9
 
-UWINCM_PATH = /your/directory/uwincm
-PREPROC_PATH = /your/directory
-WPS_PATH := $(PREPROC_PATH)/wrf_input
-HYCOM_DOMAIN_PATH := $(PREPROC_PATH)/hycom_domain
-RUN_PATH = /your/directory/uwincm/run
+## Specify the location of the WPS directory here.
+WPS_PATH := /your/wps/directory
 
+## Specify the location of the hycom_domain directory here.
+HYCOM_DOMAIN_PATH := /your/hycom_domain_directory
 
+############ These have sensible values and probably are correct ###########
+
+## Assumes you are running this Makefile within a run directory.
+RUN_PATH = $(shell pwd)
+
+## Assumes the run directory is one level under the uwincm code directory.
+UWINCM_PATH = $(shell dirname $(RUN_PATH))
+
+## These should be correct, but modify if needed.
 WRF_PATH := $(UWINCM_PATH)/src/components/WRFV$(WRF_VERSION)
 UMWM_PATH := $(UWINCM_PATH)/src/components/umwm3
+
+############ End Makefile variables. ###########
 
 
 .PHONY: help
@@ -29,8 +42,8 @@ help:
 
 
 link_wrf:
-	cp $(WRF_PATH)/run/namelist.input $(RUN_PATH)/.
-	mv namelist.input namelist.input.ori
+	cp $(WRF_PATH)/run/namelist.input $(RUN_PATH)/namelist.input.ori
+	cp namelist.input.MASTER namelist.input
 	ln -sf $(WRF_PATH)/run/GENPARM.TBL $(RUN_PATH)/.
 	ln -sf $(WRF_PATH)/run/LANDUSE.TBL $(RUN_PATH)/.
 	ln -sf $(WRF_PATH)/run/MPTABLE.TBL $(RUN_PATH)/.
@@ -47,7 +60,7 @@ link_wps:
 
 link_hycom_domain:
 	mkdir -p $(RUN_PATH)/nest
-	echo 'Copy HYCOM boundary condition files to nest/' 
+	@echo 'Copy HYCOM boundary condition files to nest/' 
 	cp -n blkdat.input.MASTER blkdat.input
 	cp $(HYCOM_DOMAIN_PATH)/restart/restart_in.* $(RUN_PATH)/.
 	./cpfile.sh $(HYCOM_DOMAIN_PATH)/subregion/subregion
@@ -57,7 +70,7 @@ link_hycom_domain:
 	cp $(HYCOM_DOMAIN_PATH)/seawifs/forcing.kpar* $(RUN_PATH)/.
 	cp $(HYCOM_DOMAIN_PATH)/rivers/forcing.rivers* $(RUN_PATH)/.
 	cp $(HYCOM_DOMAIN_PATH)/sub_topo/ports.input $(RUN_PATH)/.
-	echo 'Make sure ports.input is OK.'
+	@echo 'Make sure ports.input is OK.'
 
 
 link_hycom_tides:
@@ -71,7 +84,7 @@ link_hycom_tides:
 
 
 link_umwm:
-	echo "If this gives you broken links, make sure the executables in $(UMWM_PATH)/tools are built." 
+	@echo "If this gives you broken links, make sure the executables in $(UMWM_PATH)/tools are built." 
 	ln -sf $(UMWM_PATH)/tools/src/umwm_gridgen $(RUN_PATH)/input/umwm_gridgen
 	ln -sf $(UMWM_PATH)/tools/src/umwm_topogen $(RUN_PATH)/input/umwm_topogen
 	ln -sf $(UMWM_PATH)/tools/src/wrf2umwmgrid $(RUN_PATH)/input/wrf2umwmgrid
@@ -81,8 +94,8 @@ link_umwm:
 link_uwin:
 	cp $(UWINCM_PATH)/uwincm $(RUN_PATH)/.
 	cp -n uwin.nml.MASTER uwin.nml
-	echo 'Make sure you edit uwin.nml'
 	cp -n job.sh.MASTER job.sh
+	@echo '+++ Make sure you edit uwin.nml and job.sh +++'
 
 
 clean_umwm:
@@ -111,6 +124,6 @@ clean_log_files:
 	rm -f PET*
 
 clean_run: clean_wrf clean_hycom clean_coupler clean_log_files
-	echo "Cleaning up run."
+	@echo "Cleaning up run."
 
 
