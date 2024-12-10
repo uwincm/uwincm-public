@@ -1,4 +1,4 @@
-# Unified Wave INterface - Coupled Model (UWIN-CM)
+# Unified Wave INterface - Coupled Model (UWIN-CM), Version 1.1
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
 developed by Prof. Shuyi S. Chen and Milan Curcic and maintained by Brandon Kerns since 2017.
@@ -7,46 +7,27 @@ Several others have contributed improvements to the model code, including Dalton
 
 **This code was originally on Gitlab. This version here on Github is the latest.**
 
+This public release repository is copied over from the private development version (tag: v1.0, Oct. 2023. In the development repo the tags went "0.9" -> "1.0" -> "v1.0", here they go "v0.9" -> "v1.0" -> "v1.1".) It tracks the major version changes to UWIN-CM, and it also has some version tags that are specific to publications.
+
+Note: The development repository uses submodules for the UMWM (wave model) code. This version has all the submodules "flattened," i.e., included directly in the repository. Therefore, it is not necessary to use the --recursive option when cloning it. The cloning instructions below are different than the development repo: The recursive flag is not needed.
+
 
 ## Getting started
 
 ### Getting the source code
 
-+ Version tags are "official" releases. The most recent is v1.0.
-+ The *master* branch is the most updated, stable and tested.
-+ The *dev* branch has more updates and features, but may have bugs.
++ Version tags are "official" releases. The most recent is v1.1.
++ The *main* branch is the most updated, stable and tested.
++ The *spray* branch has Ben Barr's spray code. It is expected to be merged into main for v2.0.
 
 #### -- Checking out the master branch --
 The master branch is the latest "official" version of UWIN-CM. It is the safest and most stable branch to use.
 
-If you have added an SSH key from your local system to your GitHub account, you can clone the repo like this:
+You can clone the repo like this:
 ```
-git clone --recursive git@github.com:uwincm/uwincm.git
-```
-
-Alternatively, if you have set up HTTPS access, you can clone the repo like this:
-```
-git clone --recursive https://github.com/uwincm/uwincm.git
-```
-NOTE: This method is more involved than before, since username/password authentication is no longer allowed. See 
-[Caching your GitHub credentials in Git](https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git).
-
-
-#### -- Checking out the dev branch --
-The dev branch may have recent updates not yet included in master.
-
-In order to ensure that you're getting the full content of any submodules, use `-b dev` when cloning the dev branch
-rather than cloning master and manually switching to dev.
-
-For the SSH key access, clone the repo like this:
-```
-git clone --recursive -b dev git@github.com:uwincm/uwincm.git
+git clone --recursive git@github.com:uwincm/uwincm-public.git
 ```
 
-And for HTTPS:
-```
-git clone --recursive -b dev https://github.com/uwincm/uwincm.git
-```
 
 ### Setting up the environment
 
