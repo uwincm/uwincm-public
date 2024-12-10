@@ -1,0 +1,34 @@
+&MAIN
+  atmosphere = .T.
+  waves      = .T.
+  ocean      = .T.
+/
+
+&DIMENSIONS
+  atmdims =  539,  359 ! idm,jdm of the atmosphere component
+  wavdims =  570,  429 ! idm,jdm of the wave component
+  ocndims = 1380,  980 ! idm,jdm of the ocean component
+/
+
+&TIME
+  startDate = 2018, 10, 07, 00, 00, 00
+  endDate   = 2018, 10, 13, 00, 00, 00
+  timeSteps = 60, 60, 300
+/
+
+&COUPLER
+  sstFromOcean              = .T. ! at least AO = .T.
+  currentsFromOcean         = .T. ! at least AO = .T.
+  windStressFromWavesScalar = .T. ! at least AW = .T.
+  windStressFromWavesVector = .T. ! at least AW = .T.
+  oceanStressFromWaves      = .T. ! at least WO = .T.
+  oceanAdvectsWaves         = .T. ! at least WO = .T.
+  waveCurrentInteraction    = .T. ! at least WO = .T.
+  sprayMediatedHeatFluxes   = .T. ! at least AW = .T.
+/
+
+&SPRAY
+  SSGF_name                 = 'F09'
+  SSGF_sourcestrength       = 0.4
+  spraySubgridFeedback      = .T.
+/

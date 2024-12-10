@@ -50,7 +50,9 @@ OBJ = UWIN_constants.o \
       UWIN_GriddedComponent.o \
       UWIN_physics.o \
       COAMPS_Gsrumd.o \
-      COAMPS_Util.o
+      COAMPS_Util.o \
+      UWIN_spray_interface.o \
+      UWIN_spray_physics.o
 
 #FCFLAGS = -O0 -g -check bounds -traceback -heap-arrays -nowarn -zero -fp-model source
 FCFLAGS = -O3 -heap-arrays -nowarn -zero -fp-model source
@@ -71,17 +73,19 @@ uwincm: uwin.F90 $(OBJ) $(LIBS)
 
 # Targets
 UWIN_constants.o:        UWIN_constants.F90
-UWIN_coupler.o:          UWIN_coupler.F90 UWIN_global.o UWIN_utility.o UWIN_ExchangeGrid.o COAMPS_Util.o UWIN_physics.o
+UWIN_coupler.o:          UWIN_coupler.F90 UWIN_global.o UWIN_utility.o UWIN_ExchangeGrid.o COAMPS_Util.o UWIN_physics.o UWIN_spray_interface.o
 UWIN_interface_WRF.o:    UWIN_interface_WRF.F90 UWIN_global.o UWIN_utility.o UWIN_physics.o
 UWIN_interface_UMWM.o:   UWIN_interface_UMWM.F90 UWIN_global.o UWIN_utility.o
 UWIN_interface_HYCOM.o:  UWIN_interface_HYCOM.F90 UWIN_global.o
 UWIN_ExchangeGrid.o:     UWIN_ExchangeGrid.F90 UWIN_global.o UWIN_utility.o UWIN_interface_WRF.o
 UWIN_GriddedComponent.o: UWIN_GriddedComponent.F90
 UWIN_global.o:           UWIN_global.F90 UWIN_GriddedComponent.o
-UWIN_physics.o:          UWIN_physics.F90 UWIN_global.o UWIN_utility.o COAMPS_Util.o
+UWIN_physics.o:          UWIN_physics.F90 UWIN_global.o UWIN_utility.o COAMPS_Util.o 
 UWIN_utility.o:          UWIN_utility.F90 UWIN_global.o UWIN_constants.o
 COAMPS_Util.o:           COAMPS_Util.F90 COAMPS_Gsrumd.o
 COAMPS_Gsrumd.o:         COAMPS_Gsrumd.F90
+UWIN_spray_interface.o:  UWIN_spray_interface.F90 UWIN_spray_physics.o UWIN_global.o COAMPS_Util.o UWIN_ExchangeGrid.o
+UWIN_spray_physics.o:    UWIN_spray_physics.F90 UWIN_global.o 
 
 .PHONY:
 clean:

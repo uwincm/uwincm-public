@@ -1186,6 +1186,21 @@ state   real    qv_base        k       misc         1         -     ir        "q
 state   real    z_base         k       misc         1         -     ir        "z_base"                "BASE STATE HEIGHT IN IDEALIZED CASES"         ""      
 state   real    u_frame        -       misc         1         -     ir        "u_frame"               "FRAME X WIND"         "m s-1"      
 state   real    v_frame        -       misc         1         -     ir        "v_frame"               "FRAME Y WIND"         "m s-1"      
+state   real    dHS1spr        ij      misc         1         -     h         "dHS1spr"               "SPRAY MODIFICATION TO SHF" "W m-2"
+state   real    dHL1spr        ij      misc         1         -     h         "dHL1spr"               "SPRAY MODIFICATION TO LHF" "W m-2"
+state   real    HTspr          ij      misc         1         -     h         "HTspr"                 "SPRAY HEAT FLUX DUE TO TEMPERATURE CHANGE" "W m-2"
+state   real    HSspr          ij      misc         1         -     h         "HSspr"                 "SPRAY SHF" "W m-2"
+state   real    HRspr          ij      misc         1         -     h         "HRspr"                 "SPRAY HEAT FLUX DUE TO DROPLET SIZE CHANGE" "W m-2"
+state   real    HLspr          ij      misc         1         -     h         "HLspr"                 "SPRAY LHF" "W m-2"
+state   real    alpha_S        ij      misc         1         -     h         "alpha_S"               "SPRAY SUBGRID FEEDBACK COEFFICIENT ALPHA_S" "-"
+state   real    beta_S         ij      misc         1         -     h         "beta_S"                "SPRAY SUBGRID FEEDBACK COEFFICIENT BETA_S" "-"
+state   real    beta_L         ij      misc         1         -     h         "beta_L"                "SPRAY SUBGRID FEEDBACK COEFFICIENT BETA_L" "-"
+state   real    gamma_H        ij      misc         1         -     h         "gamma_H"               "SPRAY SUBGRID FEEDBACK COEFFICIENT GAMMA_H" "-"
+state   real    delt_spr       ij      misc         1         -     h         "delt_spr"              "WARMING AT MID-SPRAY LAYER DUE TO SUBGRID FEEDBACK" "K"
+state   real    delq_spr       ij      misc         1         -     h         "delq_spr"              "MOISTENING AT MID-SPRAY LAYER DUE TO SUBGRID FEEDBACK" "kg kg-1"
+state   real    Mspr           ij      misc         1         -     h         "Mspr"                  "SEA SPRAY MASS FLUX" "kg m-2 s-1"
+state   real    EPS_UMWM       ij      misc         1         -     h         "EPS_UMWM"              "WAVE ENERGY DISSIPATION FLUX FROM UMWM" "W m-2"
+state   real    HS_UMWM        ij      misc         1         -     h         "HS_UMWM"               "SIGNIFICANT WAVE HEIGHT FROM UMWM" "m"
 # p_top appears as metadata between SI and real but as a state variable in real and WRF
 # since it is a scalar and a constant, it makes sense to have it as metadata -- there
 # are, however, probably post-processing programs that expect to see it as an I/O record

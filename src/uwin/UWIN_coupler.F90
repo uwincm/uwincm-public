@@ -5,6 +5,7 @@ USE UWIN_global
 USE UWIN_utility
 USE UWIN_ExchangeGrid
 USE UWIN_physics, ONLY:VortexForce
+USE UWIN_spray_interface, ONLY:SprayMedHeatFluxes
 USE module_domain,ONLY:head_grid
 USE COAMPS_Util,  ONLY:FieldRemapStore,FieldRemap
 USE netcdf
@@ -162,7 +163,7 @@ DO src=1,ngc
                       dstField   = xg%expField(n,tgt,src), &
                       remapRH    = xg%RHandleIn(src,tgt),  &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .FALSE.,                &
+                      checkflag  = .TRUE.,                 &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -172,7 +173,7 @@ DO src=1,ngc
                       dstField   = gc(src)%impField(n,tgt),&
                       remapRH    = xg%RHandleOut(src,tgt), &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .FALSE.,                &
+                      checkflag  = .TRUE.,                 &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -265,11 +266,17 @@ TYPE(ESMF_State)    :: expState
 TYPE(ESMF_Clock)    :: clock
 INTEGER,INTENT(OUT) :: rc
 
-INTEGER :: src,tgt,i,j,n
+INTEGER :: src,tgt,i,j,n,sprayWaitSteps
 
 INTEGER,SAVE :: cplTimeStep = 0
 
 REAL :: t0,t1
+
+IF(waitToStartSpray)THEN    ! User may wait to start spray calcs to allow initial environment to equilibrate.
+  sprayWaitSteps = 10
+ELSE
+  sprayWaitSteps = 1
+ENDIF
 
 !===============================================================================
 
@@ -303,18 +310,31 @@ DO src=1,ngc
                       dstField   = xg%expField(n,tgt,src), &
                       remapRH    = xg%RHandleIn(src,tgt),  &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .FALSE.,                &
+                      checkflag  = .TRUE.,                 &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
 
   ENDDO
 ENDDO
-  
+
 CALL exchangeGridNestFeedback(rc)
 IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
-CALL exchangeGridNestForce(rc)
+IF(sprayMediatedHeatFluxes .AND. cplTimeStep > sprayWaitSteps)THEN    ! Perform spray heat flux calculations
+
+  CALL SprayMedHeatFluxes(rc = rc)
+  IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+ELSE    ! WRF will receive fields of zeros for spray components
+
+  DO i = 1,numWRFAuxFields2D
+    gc(1) % auxField2DPtr(i) % Ptr(isa:iea,jsa:jea) = 0.0
+  ENDDO
+  
+ENDIF
+
+CALL exchangeGridNestForce(cplTimeStep,rc)
 IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
 DO src=1,ngc
@@ -332,7 +352,7 @@ DO src=1,ngc
                       dstField   = gc(src)%impField(n,tgt),&
                       remapRH    = xg%RHandleOut(src,tgt), &
                       zeroregion = ESMF_REGION_TOTAL,      &
-                      checkflag  = .FALSE.,                &
+                      checkflag  = .TRUE.,                 &
                       rc         = rc)
       IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
     ENDDO
@@ -368,9 +388,26 @@ IF(modelIsEnabled(2))THEN
   head_grid % tauy_esmf(isa:iea,jsa:jea) = gc(1) % impFieldPtr(2,2) % Ptr(isa:iea,jsa:jea)
   head_grid %  ust_esmf(isa:iea,jsa:jea) = gc(1) % impFieldPtr(3,2) % Ptr(isa:iea,jsa:jea)
   head_grid %  vst_esmf(isa:iea,jsa:jea) = gc(1) % impFieldPtr(4,2) % Ptr(isa:iea,jsa:jea)
+  head_grid %  EPS_UMWM(isa:iea,jsa:jea) = gc(1) % impFieldPtr(5,2) % Ptr(isa:iea,jsa:jea)
+  head_grid %   HS_UMWM(isa:iea,jsa:jea) = gc(1) % impFieldPtr(7,2) % Ptr(isa:iea,jsa:jea)
 
 ENDIF
-  
+ 
+! Spray variables to WRF parent domain:
+head_grid % dHS1spr(isa:iea,jsa:jea)  = gc(1) % auxField2DPtr(1) % Ptr(isa:iea,jsa:jea)
+head_grid % dHL1spr(isa:iea,jsa:jea)  = gc(1) % auxField2DPtr(2) % Ptr(isa:iea,jsa:jea)
+head_grid % HTspr(isa:iea,jsa:jea)    = gc(1) % auxField2DPtr(3) % Ptr(isa:iea,jsa:jea)
+head_grid % HSspr(isa:iea,jsa:jea)    = gc(1) % auxField2DPtr(4) % Ptr(isa:iea,jsa:jea)
+head_grid % HRspr(isa:iea,jsa:jea)    = gc(1) % auxField2DPtr(5) % Ptr(isa:iea,jsa:jea)
+head_grid % HLspr(isa:iea,jsa:jea)    = gc(1) % auxField2DPtr(6) % Ptr(isa:iea,jsa:jea)
+head_grid % alpha_S(isa:iea,jsa:jea)  = gc(1) % auxField2DPtr(7) % Ptr(isa:iea,jsa:jea)
+head_grid % beta_S(isa:iea,jsa:jea)   = gc(1) % auxField2DPtr(8) % Ptr(isa:iea,jsa:jea)
+head_grid % beta_L(isa:iea,jsa:jea)   = gc(1) % auxField2DPtr(9) % Ptr(isa:iea,jsa:jea)
+head_grid % gamma_H(isa:iea,jsa:jea)  = gc(1) % auxField2DPtr(10)% Ptr(isa:iea,jsa:jea)
+head_grid % delt_spr(isa:iea,jsa:jea) = gc(1) % auxField2DPtr(11)% Ptr(isa:iea,jsa:jea)
+head_grid % delq_spr(isa:iea,jsa:jea) = gc(1) % auxField2DPtr(12)% Ptr(isa:iea,jsa:jea)
+head_grid % Mspr(isa:iea,jsa:jea)     = gc(1) % auxField2DPtr(13)% Ptr(isa:iea,jsa:jea)
+
 !===============================================================================
 ! Manage coupling switches in model components:
 IF(firstTimeStep)THEN
@@ -383,6 +420,7 @@ IF(firstTimeStep)THEN
   WRITE(*,*)'UWIN_coupler: CPL_run: oceanStressFromWaves:     ',oceanStressFromWaves
   WRITE(*,*)'UWIN_coupler: CPL_run: oceanAdvectsWaves:        ',oceanAdvectsWaves
   WRITE(*,*)'UWIN_coupler: CPL_run: waveCurrentInteraction    ',waveCurrentInteraction
+  WRITE(*,*)'UWIN_coupler: CPL_run: sprayMediatedHeatFluxes:  ',sprayMediatedHeatFluxes
 ! WRITE(*,*)'UWIN_coupler: CPL_run: vconvAtmosphere           ',vconvAtmosphere
 ! WRITE(*,*)'UWIN_coupler: CPL_run: vconvOcean                ',vconvOcean
   WRITE(*,*)

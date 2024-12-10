@@ -20,7 +20,7 @@ TYPE domain_ptr
   TYPE(domain),POINTER :: Ptr
 ENDTYPE domain_ptr
 
-TYPE(domain_ptr),DIMENSION(10) :: dom
+TYPE(domain_ptr),DIMENSION(3) :: dom
 
 CONTAINS
 !===============================================================================
@@ -256,6 +256,29 @@ iea = gc(1) % ite
 jsa = gc(1) % jts
 jea = gc(1) % jte
 
+! Create 2D auxiliary fields:
+DO i = 1,numWRFAuxFields2D,1
+    
+    gc(1)%auxField2D(i) = ESMF_FieldCreate(grid        = gc(1) % grid,           &
+                                           arrayspec   = arrspec2DR4,            &
+                                           indexflag   = ESMF_INDEX_GLOBAL,      &
+                                           staggerLoc  = ESMF_STAGGERLOC_CENTER, &
+                                           totalLwidth = [1,1],                  &
+                                           totalUwidth = [1,1],                  &
+                                           name        = WRFauxField2DName(i),   &
+                                           rc          = rc)
+    IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+    CALL ESMF_FieldGet(field     = gc(1)%auxField2D(i),        &
+                       localDE   = 0,                          &
+                       farrayPtr = gc(1)%auxField2DPtr(i)%Ptr, &
+                       rc        = rc)
+    IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+    gc(1)%auxField2DPtr(i)%Ptr = 0
+
+END DO
+
 CALL exportFields(rc=rc)
 
 ENDSUBROUTINE wrf_component_init
@@ -361,6 +384,7 @@ SUBROUTINE exportFields(rc)
 !USE module_sf_sfclay,ONLY:uwin_vconvc_water
 USE UWIN_physics,    ONLY:meanSeaLevelPressure
 USE mod_hycom,       ONLY:flxflg
+USE module_state_description, ONLY:P_QV
 
 INTEGER,INTENT(OUT),OPTIONAL :: rc
 
@@ -372,6 +396,7 @@ REAL(KIND=ESMF_KIND_R4),DIMENSION(isa:iea,jsa:jea) :: wspd
 REAL(KIND=ESMF_KIND_R4),DIMENSION(isa:iea,jsa:jea) :: vconv
 REAL(KIND=ESMF_KIND_R4),DIMENSION(isa:iea,jsa:jea) :: t2v
 REAL(KIND=ESMF_KIND_R4),DIMENSION(isa:iea,jsa:jea) :: sstv
+REAL(KIND=ESMF_KIND_R4),DIMENSION(isa:iea,jsa:jea) :: u_LML,v_LML,w_LML
 
 REAL(KIND=ESMF_KIND_R4) :: ue,ve,tvcon
 
@@ -504,6 +529,31 @@ IF(modelIsEnabled(2))THEN
 
   ! Inverse Monin-Obukhov length, 1/L:
   gc(1)%expFieldPtr(5,2)%Ptr(isa:iea,jsa:jea) = head_grid%rmol(isa:iea,jsa:jea)
+
+  ! Height of lowest model level (uses Geopot Height on Z-staggered grid):
+  gc(1)%expFieldPtr(6,2)%Ptr(isa:iea,jsa:jea) = &
+          0.5*(head_grid%ph_2(isa:iea,1,jsa:jea) + head_grid%phb(isa:iea,1,jsa:jea)&
+             + head_grid%ph_2(isa:iea,2,jsa:jea) + head_grid%phb(isa:iea,2,jsa:jea))/9.81    ! [m]
+
+  ! Windspeed at lowest model level (uses horizontally-staggered windspeeds):
+  u_LML(isa:iea,jsa:jea) = 0.5*(head_grid%u_2(isa:iea,1,jsa:jea) + head_grid%u_2(isa+1:iea+1,1,jsa:jea))
+  v_LML(isa:iea,jsa:jea) = 0.5*(head_grid%v_2(isa:iea,1,jsa:jea) + head_grid%v_2(isa:iea,1,jsa+1:jea+1))
+  gc(1)%expFieldPtr(7,2)%Ptr(isa:iea,jsa:jea) = SQRT(u_LML(isa:iea,jsa:jea)**2&
+                                                   + v_LML(isa:iea,jsa:jea)**2)    ! [m s-1]
+
+  ! Potential temperature at lowest model level:
+  gc(1)%expFieldPtr(8,2)%Ptr(isa:iea,jsa:jea) = head_grid%t_2(isa:iea,1,jsa:jea) + 300.    ! Pot temp (dry) [K]
+  
+  ! Specific humidity at lowest model level:
+  w_LML(isa:iea,jsa:jea) = head_grid%moist(isa:iea,1,jsa:jea,P_QV)    ! Mixing ratio [kg kg-1]
+  gc(1)%expFieldPtr(9,2)%Ptr(isa:iea,jsa:jea) = w_LML(isa:iea,jsa:jea)/&
+                                                (1.0 + w_LML(isa:iea,jsa:jea))    ! [kg kg-1]
+
+  ! Surface pressure:
+  gc(1)%expFieldPtr(10,2)%Ptr(isa:iea,jsa:jea) = head_grid%psfc(isa:iea,jsa:jea)    ! [Pa]
+
+  ! Sea surface temperature (duplicate of expField (6,3) for running in AW mode):
+  gc(1)%expFieldPtr(11,2)%Ptr(isa:iea,jsa:jea) = head_grid%tsk(isa:iea,jsa:jea)    ! [K]
 
 ENDIF
 

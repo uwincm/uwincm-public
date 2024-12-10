@@ -121,6 +121,7 @@ CONTAINS
     REAL,DIMENSION(ims:ime,jms:jme) :: psim10  ! uwin
     REAL,DIMENSION(ims:ime,jms:jme) :: wspdfac ! uwin
     INTEGER :: i,j                             ! uwin
+    REAL,PARAMETER :: Lv_spray = 2.43e6        ! uwin
 
     real :: HYDRO_dt
     REAL, DIMENSION( ims:ime, jms:jme ) :: exch_temf  ! 1/7/09 WA
@@ -886,8 +887,15 @@ IF(UMCM_currentDependentHeatFlux)THEN
   ENDFORALL
 
 ENDIF
-!******** uwin end
 
+! Spray-mediated heat fluxes
+FORALL(i=ims:ime,j=jms:jme,grid % xland(i,j) > 1.5)
+  grid % hfx(i,j) = grid % hfx(i,j) + grid % dHS1spr(i,j)
+  grid % qfx(i,j) = grid % qfx(i,j) + grid % dHL1spr(i,j)/Lv_spray
+  grid % lh(i,j)  = grid % lh(i,j)  + grid % dHL1spr(i,j)
+ENDFORALL
+
+!******** uwin end
 
 BENCH_END(surf_driver_tim)
 

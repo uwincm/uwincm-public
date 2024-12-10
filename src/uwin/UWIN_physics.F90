@@ -13,7 +13,6 @@ PUBLIC :: stability
 PUBLIC :: meanSeaLevelPressure
 PUBLIC :: VortexForce
 PUBLIC :: WindStressKara
-
 !===============================================================================
 CONTAINS
 
@@ -998,4 +997,5 @@ ENDSUBROUTINE windStressKara
       enddo !k
       end subroutine hybgen_pcm
 !===============================================================================
+
 ENDMODULE UWIN_physics

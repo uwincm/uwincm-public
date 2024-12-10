@@ -3,8 +3,8 @@
 *.mod
 *.log
 log*
-/*.exe
-/*.inc
-/Makefile
+*.exe
+*.inc
+Makefile
 TODO
-/uwincm
+uwincm

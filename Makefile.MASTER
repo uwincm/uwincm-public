@@ -43,11 +43,6 @@ wrf:
 umwm:
 	$(MAKE) umwm -C src/components/$(wave_component)
 
-
-# build umwm tools.
-umwm_tools:
-	$(MAKE) -C src/components/$(wave_component)/tools/src
-
 # build hycom
 hycom:
 	$(MAKE) -C src/components/hycom/src_$(hycom_version)
@@ -75,10 +70,6 @@ clean_wrf:
 
 clean_umwm:
 	$(MAKE) clean -C src/components/$(wave_component)
-
-# clean umwm tools.
-clean_umwm_tools:
-	$(MAKE) clean -C src/components/$(wave_component)/tools/src
 
 clean_hycom:
 	$(MAKE) clean -C src/components/hycom/src_$(hycom_version)

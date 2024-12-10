@@ -6,13 +6,13 @@ c --- itdm  = total grid dimension in i direction
 c --- jtdm  = total grid dimension in j direction
 c --- kdm   =       grid dimension in k direction
       integer    itdm,jtdm,kdm
-      parameter (itdm= 376,jtdm= 253,kdm=32) ! NWPa0.08
+c     parameter (itdm= 376,jtdm= 253,kdm=32) ! NWPa0.08
 c     parameter (itdm= 40,jtdm= 40,kdm=32) ! TSTa0.08
 c     parameter (itdm= 55,jtdm= 45,kdm=32) ! BREa0.08
 c     parameter (itdm=361,jtdm=321,kdm=32) ! ATLA0.08
 c     parameter (itdm=1000,jtdm=1000,kdm=32) ! ATLA0.04
 c     parameter (itdm=1240,jtdm=940,kdm=32) ! ATLb0.04
-c     parameter (itdm=1380,jtdm=980,kdm=32) ! ATLd0.04
+      parameter (itdm=1380,jtdm=980,kdm=41) ! ATLd0.04
 c     parameter (itdm=1580,jtdm=980,kdm=32) ! ATLe0.04
 c     parameter (itdm=1776,jtdm= 818,kdm=32) ! INDa0.08
 c     parameter (itdm=1541,jtdm=1221,kdm=32) ! PACA0.04
@@ -23,14 +23,14 @@ c --- jqr   = maximum number of tiles in j direction
       integer    iqr,jqr
 c     parameter (iqr=2,jqr=2)  ! NMPI=4 
 c     parameter (iqr=4,jqr=2)  ! NMPI=8 
-      parameter (iqr=4,jqr=3)  ! NMPI=12
+c     parameter (iqr=4,jqr=3)  ! NMPI=12
 c     parameter (iqr=4,jqr=4)  ! NMPI=16 
 c     parameter (iqr=6,jqr=4)  ! NMPI=24 
 c     parameter (iqr=8,jqr=6)  ! NMPI=48
 c     parameter (iqr=9,jqr=8)  ! NMPI=72
 c     parameter (iqr=8,jqr=8)  ! NMPI=64
 c     parameter (iqr=2,jqr=2)  ! NMPI=4 
-c     parameter (iqr=12,jqr=8) ! NMPI=96
+      parameter (iqr=12,jqr=8) ! NMPI=96
 c
 c --- idm   = maximum single tile grid dimension in i direction
 c --- jdm   = maximum single tile grid dimension in j direction
@@ -44,7 +44,7 @@ c     parameter (idm= 112,jdm= 125)  ! NMPI=72 ISAAC and IKE
 c     parameter (idm=  84,jdm= 125)  ! NMPI=96 ISAAC and IKE
 c     parameter (idm= 155,jdm= 157)  ! NMPI=48 EARL ATLb0.04
 c     parameter (idm= 173,jdm= 164)  ! NMPI=48 EARL ATLd0.04
-c     parameter (idm= 115,jdm= 123)  ! NMPI=96 EARL ATLd0.04
+      parameter (idm= 115,jdm= 123)  ! NMPI=96 EARL ATLd0.04
 c     parameter (idm= 132,jdm= 123)  ! NMPI=96 EARL ATLe0.04
 c     parameter (idm=  20,jdm=  20)  ! NMPI=4       TSTa0.08
 c     parameter (idm=  28,jdm=  23)  ! NMPI=4       BREa0.08
@@ -56,7 +56,8 @@ c     parameter (idm= 125,jdm= 125)  ! NMPI=64
 c     parameter (idm= 193,jdm= 204)  ! NMPI=48 PAC
 c     parameter (idm=  53,jdm=  53)  ! NMPI=4  CARTHAGENA
 c     parameter (idm=  31,jdm=  41)  ! NMPI=96
-      parameter (idm=  94,jdm=  85)  ! NMPI=12 NWPa0.08
+c     parameter (idm=  94,jdm=  85)  ! NMPI=12 NWPa0.08
+c     parameter (idm= 230,jdm= 245)  ! NMPI=24 ATLd0.04
 c
 c --- mxthrd= maximum number of OpenMP threads
       integer    mxthrd

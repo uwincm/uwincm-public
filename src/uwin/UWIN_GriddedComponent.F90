@@ -118,6 +118,7 @@ TYPE GriddedComponent
   !- INFRASTRUCTURE OBJECTS --------------------------------------------------->
   INTEGER(KIND=ESMF_KIND_I4) :: numImpFields,numExpFields
   INTEGER(KIND=ESMF_KIND_I4) :: numAuxFields = 3
+  INTEGER(KIND=ESMF_KIND_I4) :: numAuxFields2D = 13
   INTEGER(KIND=ESMF_KIND_I4) :: numGriddedComponents
 
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(:,:),ALLOCATABLE :: impFieldName
@@ -133,6 +134,7 @@ TYPE GriddedComponent
   TYPE(ESMF_RouteHandle),DIMENSION(:),ALLOCATABLE :: expRouteHandle
 
   TYPE(ESMF_RouteHandle) :: auxRouteHandle
+  TYPE(ESMF_RouteHandle) :: aux2DRouteHandle
 
   TYPE(ESMF_RouteHandle),DIMENSION(:),ALLOCATABLE :: impHaloRouteHandle
   TYPE(ESMF_RouteHandle),DIMENSION(:),ALLOCATABLE :: expHaloRouteHandle
@@ -143,6 +145,10 @@ TYPE GriddedComponent
   TYPE(ESMF_Field),          DIMENSION(:),ALLOCATABLE :: auxField
   TYPE(farrayPtrType3DR4),   DIMENSION(:),ALLOCATABLE :: auxFieldPtr
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(:),ALLOCATABLE :: auxFieldName
+
+  TYPE(ESMF_Field),          DIMENSION(:),ALLOCATABLE :: auxField2D
+  TYPE(farrayPtrType2DR4),   DIMENSION(:),ALLOCATABLE :: auxField2DPtr
+  CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(:),ALLOCATABLE :: auxField2DName
 
   CONTAINS
     
@@ -311,6 +317,7 @@ SUBROUTINE create(self,id,numGriddedComponents,numImpFields,numExpFields,name,rc
   ALLOCATE(self%impFieldName(numImpFields,numGriddedComponents))
   ALLOCATE(self%expFieldName(numExpFields,numGriddedComponents))
   ALLOCATE(self%auxFieldName(self%numAuxFields))
+  ALLOCATE(self%auxField2DName(self%numAuxFields2D))
 
   ALLOCATE(self%impBundleName(numGriddedComponents))
   ALLOCATE(self%expBundleName(numGriddedComponents))
@@ -318,6 +325,7 @@ SUBROUTINE create(self,id,numGriddedComponents,numImpFields,numExpFields,name,rc
   ALLOCATE(self%impField(numImpFields,numGriddedComponents))
   ALLOCATE(self%expField(numExpFields,numGriddedComponents))
   ALLOCATE(self%auxField(self%numAuxFields))
+  ALLOCATE(self%auxField2D(self%numAuxFields2D))
 
   ALLOCATE(self%impBundle(numGriddedComponents))
   ALLOCATE(self%expBundle(numGriddedComponents))
@@ -331,6 +339,7 @@ SUBROUTINE create(self,id,numGriddedComponents,numImpFields,numExpFields,name,rc
   ALLOCATE(self%impFieldPtr(numImpFields,numGriddedComponents))
   ALLOCATE(self%expFieldPtr(numExpFields,numGriddedComponents))
   ALLOCATE(self%auxFieldPtr(self%numAuxFields))
+  ALLOCATE(self%auxField2DPtr(self%numAuxFields2D))
 
   ALLOCATE(self%lon(self%idm,self%jdm))
   ALLOCATE(self%lat(self%idm,self%jdm))

@@ -28,20 +28,25 @@ TYPE ExchangeGrid
 
   !- FIELDS, FIELD BUNDLES AND POINTERS --------------------------------------->  
   INTEGER,DIMENSION(ngc,ngc) :: numImpFields,numExpFields
+  INTEGER                    :: numAuxFields2D
 
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(maxNumFields,ngc,ngc) :: impFieldName
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(maxNumFields,ngc,ngc) :: expFieldName
+  CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(numXGAuxFields2D) ::     auxField2DName
 
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(ngc,ngc) :: impBundleName
   CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(ngc,ngc) :: expBundleName
 
   TYPE(ESMF_Field),      DIMENSION(maxNumFields,ngc,ngc) :: impField,expField
   TYPE(ESMF_FieldBundle),DIMENSION(ngc,ngc)              :: impBundle,expBundle
+  TYPE(ESMF_Field),      DIMENSION(numXGAuxFields2D)     :: auxField2D
 
   TYPE(ESMF_RouteHandle),DIMENSION(ngc,ngc) :: RHandleIn,RHandleOut
+  TYPE(ESMF_RouteHandle) :: RHandleAux2D
 
   TYPE(farrayPtrType2DR4),DIMENSION(maxNumFields,ngc,ngc) :: impFieldPtr
   TYPE(farrayPtrType2DR4),DIMENSION(maxNumFields,ngc,ngc) :: expFieldPtr
+  TYPE(farrayPtrType2DR4),DIMENSION(numXGAuxFields2D)     :: auxField2DPtr
 
   INTEGER(KIND=ESMF_KIND_I4),POINTER,DIMENSION(:,:) :: maskfarrayPtr
   !---------------------------------------------------------------------------->  
@@ -327,6 +332,7 @@ rc = ESMF_SUCCESS
 
 xg % numImpFields = numExpFields ! impFields on XG are expFields from model
 xg % numExpFields = numImpFields ! expFields from XG are impFields on model
+xg % numAuxFields2D = numXGAuxFields2D
 
 xg % impBundleName = expBundleName
 xg % expBundleName = impBundleName
@@ -405,6 +411,29 @@ DO tgt=1,ngc
   ENDDO 
 ENDDO
 
+! Auxiliary fields:
+DO n=1,xg%numAuxFields2D
+
+  xg%auxField2DName(n) = XGauxField2DName(n)
+
+  xg%auxField2D(n) = ESMF_FieldCreate(grid      = xg%grid,                 &
+                                    arrayspec = arrspec2DR4,               &
+                                    indexflag = ESMF_INDEX_GLOBAL,         &
+                                    name      = xg%auxField2DName(n),      &
+                                    rc        = rc)
+  IF(rc/=ESMF_SUCCESS)RETURN
+
+  CALL ESMF_FieldGet(field           = xg%auxField2D(n),               &
+                     localDE         = 0,                            &
+                     farrayPtr       = xg%auxField2DPtr(n)%Ptr,        &
+                     exclusiveLbound = lb,                           &
+                     exclusiveUbound = ub,                           &
+                     rc              = rc)
+  IF(rc/=ESMF_SUCCESS)RETURN
+  xg%auxField2DPtr(n)%Ptr = 0
+
+ENDDO
+
 ENDSUBROUTINE exchangeGridFieldCreateAll
 !===============================================================================
 
@@ -439,12 +468,13 @@ ENDSUBROUTINE exchangeGridPhysics
 
 
 
-SUBROUTINE exchangeGridNestForce(rc)
+SUBROUTINE exchangeGridNestForce(cplTimeStep,rc)
 !===============================================================================
 USE UWIN_interface_WRF,ONLY:dom,wrfDomExists,wrfDomHasStopped
 USE module_domain,   ONLY:get_ijk_from_grid
 !===============================================================================
 
+INTEGER,INTENT(IN) :: cplTimeStep
 INTEGER,INTENT(OUT) :: rc
 
 INTEGER :: i,j
@@ -467,14 +497,26 @@ INTEGER,DIMENSION(2) :: coords
 INTEGER :: idm_nest,jdm_nest,idm_util,jdm_util
 
 REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: lon,lat
-REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: tsk,taux,tauy
+REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: tsk,taux,tauy,eps,Hs
 
 REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: tsk_XG
 REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: sst_XG
 REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: taux_XG
 REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: tauy_XG
+REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: eps_XG
+REAL(KIND=ESMF_KIND_R4),DIMENSION(xg%idm,xg%jdm) :: Hs_XG
+
+TYPE utilarrayType2DR4
+        REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: Elem
+ENDTYPE utilarrayType2DR4
+
+TYPE(utilarrayType2DR4),DIMENSION(numWRFAuxFields2D) :: auxFields2D,auxFields2D_XG
 
 !===============================================================================
+
+DO i = 1,numWRFAuxFields2D
+  ALLOCATE(auxFields2D_XG(i)%Elem(xg%idm,xg%jdm))
+ENDDO
 
 DO domNum = 2,xg % maxDomains
 
@@ -512,12 +554,22 @@ DO domNum = 2,xg % maxDomains
       ALLOCATE(tsk(ids:ide,jds:jde))
       ALLOCATE(taux(ids:ide,jds:jde))
       ALLOCATE(tauy(ids:ide,jds:jde))
+      ALLOCATE(eps(ids:ide,jds:jde))
+      ALLOCATE(Hs(ids:ide,jds:jde))
+      DO i = 1,numWRFAuxFields2D
+        ALLOCATE(auxFields2D(i)%Elem(ids:ide,jds:jde))
+      ENDDO
     
     ELSE
   
       ALLOCATE(tsk(ips:ipe,jps:jpe))
       ALLOCATE(taux(ips:ipe,jps:jpe))
       ALLOCATE(tauy(ips:ipe,jps:jpe))
+      ALLOCATE(eps(ips:ipe,jps:jpe))
+      ALLOCATE(Hs(ips:ipe,jps:jpe))
+      DO i = 1,numWRFAuxFields2D
+        ALLOCATE(auxFields2D(i)%Elem(ips:ipe,jps:jpe))
+      ENDDO
 
     ENDIF
     !==========================================================================>
@@ -560,6 +612,32 @@ DO domNum = 2,xg % maxDomains
                           rc      = rc)
     IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
+    ! Wave energy dissipation flux from wave model:
+    CALL ESMF_FieldGather(field   = xg%expField(5,1,2),&
+                          farray  = eps_XG,           &
+                          rootPet = 0,                 &
+                          vm      = VM,                &
+                          rc      = rc)
+    IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+    ! Significant wave height from wave model:
+    CALL ESMF_FieldGather(field   = xg%expField(7,1,2),&
+                          farray  = Hs_XG,           &
+                          rootPet = 0,                 &
+                          vm      = VM,                &
+                          rc      = rc)
+    IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+    ! 2D Auxiliary fields XG --> WRF:
+    DO i = 1,numWRFAuxFields2D
+        CALL ESMF_FieldGather(field   = xg%auxField2D(indxAuxField2D_XG2WRF(i)),&
+                              farray  = auxFields2D_XG(i)%Elem,&
+                              rootPet = 0,                 &
+                              vm      = VM,                &
+                              rc      = rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+    ENDDO
+
     !==========================================================================>
 
     !==========================================================================>
@@ -596,12 +674,34 @@ DO domNum = 2,xg % maxDomains
                                               jc:jc+jdm_util-1),&
                                       tauy,coarsenRatio,rc)
 
+        !- WAVE DISSIP AND SWH ---------------------------------->
+        CALL exchangeGridCoarsenField(eps_XG(ic:ic+idm_util-1, &
+                                             jc:jc+jdm_util-1),&
+                                      eps,coarsenRatio,rc)
+
+        CALL exchangeGridCoarsenField(Hs_XG(ic:ic+idm_util-1, &
+                                            jc:jc+jdm_util-1),&
+                                      Hs,coarsenRatio,rc)
+
+        !- 2D AUX FIELDS --------------------------------------->
+        DO i = 1,numWRFAuxFields2D
+          CALL exchangeGridCoarsenField(auxFields2D_XG(i)%Elem(ic:ic+idm_util-1, &
+                                                               jc:jc+jdm_util-1),&
+                                        auxFields2D(i)%Elem,coarsenRatio,rc)
+        ENDDO
+
       ! If XG is same resolution as nest, copy fields:
       ELSEIF(domNum == xg % refinementLevel)THEN
 
         tsk  =  tsk_XG(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
         taux = taux_XG(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
         tauy = tauy_XG(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
+        eps  =  eps_XG(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
+        Hs   =   Hs_XG(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
+        DO i = 1,numWRFAuxFields2D
+          auxFields2D(i)%Elem &
+                  = auxFields2D_XG(i)%Elem(ic:ic+idm_nest-1,jc:jc+jdm_nest-1)
+        ENDDO
 
       ELSE ! If nest is finer than XG, refine XG field 
 
@@ -622,6 +722,21 @@ DO domNum = 2,xg % maxDomains
                                      tauy,refineRatio,rc)
         IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
 
+        CALL exchangeGridRefineField(eps_XG(ic:ic+idm_util-1,jc:jc+jdm_util-1),&
+                                     eps,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+        CALL exchangeGridRefineField(Hs_XG(ic:ic+idm_util-1,jc:jc+jdm_util-1),&
+                                     Hs,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+
+        DO i = 1,numWRFAuxFields2D
+          CALL exchangeGridRefineField(&
+                  auxFields2D_XG(i)%Elem(ic:ic+idm_util-1,jc:jc+jdm_util-1),&
+                  auxFields2D(i)%Elem,refineRatio,rc)
+          IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        ENDDO
+
       ENDIF ! domNum<xg%refinementLevel
 
     ENDIF ! localPet==0
@@ -630,6 +745,11 @@ DO domNum = 2,xg % maxDomains
     CALL tileScatter( tsk,is,ie,js,je,rc)
     CALL tileScatter(taux,is,ie,js,je,rc)
     CALL tileScatter(tauy,is,ie,js,je,rc)
+    CALL tileScatter( eps,is,ie,js,je,rc)
+    CALL tileScatter(  Hs,is,ie,js,je,rc)
+    DO i = 1,numWRFAuxFields2D
+      CALL tileScatter(auxFields2D(i)%Elem,is,ie,js,je,rc)
+    ENDDO
 
     ! Assign to nest:
     IF(sstFromOcean)THEN
@@ -641,11 +761,29 @@ DO domNum = 2,xg % maxDomains
  
     dom(domNum) % Ptr % taux_esmf(ips:ipe,jps:jpe) = taux(ips:ipe,jps:jpe)
     dom(domNum) % Ptr % tauy_esmf(ips:ipe,jps:jpe) = tauy(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % EPS_UMWM(ips:ipe,jps:jpe)  = eps(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % HS_UMWM(ips:ipe,jps:jpe)   = Hs(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % dHS1spr(ips:ipe,jps:jpe)  = auxFields2D( 1)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % dHL1spr(ips:ipe,jps:jpe)  = auxFields2D( 2)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % HTspr(ips:ipe,jps:jpe)    = auxFields2D( 3)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % HSspr(ips:ipe,jps:jpe)    = auxFields2D( 4)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % HRspr(ips:ipe,jps:jpe)    = auxFields2D( 5)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % HLspr(ips:ipe,jps:jpe)    = auxFields2D( 6)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % alpha_S(ips:ipe,jps:jpe)  = auxFields2D( 7)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % beta_S(ips:ipe,jps:jpe)   = auxFields2D( 8)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % beta_L(ips:ipe,jps:jpe)   = auxFields2D( 9)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % gamma_H(ips:ipe,jps:jpe)  = auxFields2D(10)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % delt_spr(ips:ipe,jps:jpe) = auxFields2D(11)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % delq_spr(ips:ipe,jps:jpe) = auxFields2D(12)%Elem(ips:ipe,jps:jpe)
+    dom(domNum) % Ptr % Mspr(ips:ipe,jps:jpe)     = auxFields2D(13)%Elem(ips:ipe,jps:jpe)
 
     IF(localPet == 0)THEN
       DEALLOCATE(lon,lat)
     ENDIF
-    DEALLOCATE(tsk,taux,tauy)
+    DEALLOCATE(tsk,taux,tauy,eps,Hs)
+    DO i = 1,numWRFAuxFields2D
+      DEALLOCATE(auxFields2D(i)%Elem)
+    ENDDO
     !==========================================================================>
 
   ENDIF ! wrfDomExists(domNum)
@@ -676,6 +814,7 @@ SUBROUTINE exchangeGridNestFeedback(rc)
 !===============================================================================
 USE UWIN_interface_WRF,ONLY:dom,wrfDomExists,wrfDomHasStopped
 USE module_domain,   ONLY:get_ijk_from_grid,domain_clockisstoptime
+USE module_state_description, ONLY:P_QV
 !===============================================================================
 
 INTEGER,INTENT(OUT) :: rc
@@ -699,6 +838,8 @@ REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: lon,lat
 REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: u10,v10,wspd
 REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: t2,q2
 REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: rhoa
+REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: z_LML,u_LML,v_LML,&
+        wspd_LML,theta_LML,w_LML,q_LML,psfc,sst
 
 REAL(KIND=ESMF_KIND_R4),DIMENSION(:,:),ALLOCATABLE :: util_farray
 
@@ -767,6 +908,12 @@ DO domNum = 2,xg % refinementLevel
       ALLOCATE( t2(ids:ide,jds:jde), q2(ids:ide,jds:jde))
       ALLOCATE(wspd(ids:ide,jds:jde))
       ALLOCATE(rhoa(ids:ide,jds:jde))
+      ALLOCATE(z_LML(ids:ide,jds:jde))
+      ALLOCATE(u_LML(ids:ide,jds:jde),v_LML(ids:ide,jds:jde),wspd_LML(ids:ide,jds:jde))
+      ALLOCATE(theta_LML(ids:ide,jds:jde))
+      ALLOCATE(w_LML(ids:ide,jds:jde),q_LML(ids:ide,jds:jde))
+      ALLOCATE(psfc(ids:ide,jds:jde))
+      ALLOCATE(sst(ids:ide,jds:jde))
 
     ELSE
 
@@ -774,6 +921,12 @@ DO domNum = 2,xg % refinementLevel
       ALLOCATE( t2(ips:ipe,jps:jpe), q2(ips:ipe,jps:jpe))
       ALLOCATE(wspd(ips:ipe,jps:jpe))
       ALLOCATE(rhoa(ips:ipe,jps:jpe))
+      ALLOCATE(z_LML(ips:ipe,jps:jpe))
+      ALLOCATE(u_LML(ips:ipe,jps:jpe),v_LML(ips:ipe,jps:jpe),wspd_LML(ips:ipe,jps:jpe))
+      ALLOCATE(theta_LML(ips:ipe,jps:jpe))
+      ALLOCATE(w_LML(ips:ipe,jps:jpe),q_LML(ips:ipe,jps:jpe))
+      ALLOCATE(psfc(ips:ipe,jps:jpe))
+      ALLOCATE(sst(ips:ipe,jps:jpe))
 
     ENDIF
 
@@ -788,6 +941,27 @@ DO domNum = 2,xg % refinementLevel
     wspd(ips:ipe,jps:jpe) = SQRT(u10(ips:ipe,jps:jpe)**2.&
                                 +v10(ips:ipe,jps:jpe)**2.)
 
+    z_LML(ips:ipe,jps:jpe) = 0.5*(dom(domNum)%Ptr%ph_2(ips:ipe,1,jps:jpe) &
+                                + dom(domNum)%Ptr%phb( ips:ipe,1,jps:jpe) &
+                                + dom(domNum)%Ptr%ph_2(ips:ipe,2,jps:jpe) &
+                                + dom(domNum)%Ptr%phb( ips:ipe,2,jps:jpe))/9.81
+
+    u_LML(ips:ipe,jps:jpe) = 0.5*(dom(domNum)%Ptr%u_2(ips:ipe,1,jps:jpe) &
+                                + dom(domNum)%Ptr%u_2(ips+1:ipe+1,1,jps:jpe))
+    v_LML(ips:ipe,jps:jpe) = 0.5*(dom(domNum)%Ptr%v_2(ips:ipe,1,jps:jpe) &
+                                + dom(domNum)%Ptr%v_2(ips:ipe,1,jps+1:jpe+1))
+    wspd_LML(ips:ipe,jps:jpe) = SQRT(u_LML(ips:ipe,jps:jpe)**2.&
+                                   + v_LML(ips:ipe,jps:jpe)**2.)
+
+    theta_LML(ips:ipe,jps:jpe) = dom(domNum)%Ptr%t_2(ips:ipe,1,jps:jpe) + 300.
+    
+    w_LML(ips:ipe,jps:jpe) = dom(domNum)%Ptr%moist(ips:ipe,1,jps:jpe,P_QV)
+    q_LML(ips:ipe,jps:jpe) = w_LML(ips:ipe,jps:jpe)/(1.0 + w_LML(ips:ipe,jps:jpe))
+
+    psfc(ips:ipe,jps:jpe) = dom(domNum)%Ptr%psfc(ips:ipe,jps:jpe)
+
+    sst(ips:ipe,jps:jpe) = dom(domNum)%Ptr%tsk(ips:ipe,jps:jpe)
+
     ! Gather to root PET:
     CALL tileGather(u10,is,ie,js,je,rc)
     CALL tileGather(v10,is,ie,js,je,rc)
@@ -795,6 +969,12 @@ DO domNum = 2,xg % refinementLevel
     CALL tileGather(t2,is,ie,js,je,rc)
     CALL tileGather(q2,is,ie,js,je,rc)
     CALL tileGather(rhoa,is,ie,js,je,rc)
+    CALL tileGather(z_LML,is,ie,js,je,rc)
+    CALL tileGather(wspd_LML,is,ie,js,je,rc)
+    CALL tileGather(theta_LML,is,ie,js,je,rc)
+    CALL tileGather(q_LML,is,ie,js,je,rc)
+    CALL tileGather(psfc,is,ie,js,je,rc)
+    CALL tileGather(sst,is,ie,js,je,rc)
 
     !================================================================>
 
@@ -868,6 +1048,60 @@ DO domNum = 2,xg % refinementLevel
         rhoa = util_farray
         !-------------------------------------------------------------------
 
+        !-------------------------------------------------------------------
+        ! height of lowest model level
+        CALL exchangeGridRefineField(z_LML,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(z_LML)
+        ALLOCATE(z_LML(idm_util,jdm_util))
+        z_LML = util_farray
+        !-------------------------------------------------------------------
+
+        !-------------------------------------------------------------------
+        ! windspeed at lowest model level
+        CALL exchangeGridRefineField(wspd_LML,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(wspd_LML)
+        ALLOCATE(wspd_LML(idm_util,jdm_util))
+        wspd_LML = util_farray
+        !-------------------------------------------------------------------
+
+        !-------------------------------------------------------------------
+        ! potential temperature at lowest model level
+        CALL exchangeGridRefineField(theta_LML,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(theta_LML)
+        ALLOCATE(theta_LML(idm_util,jdm_util))
+        theta_LML = util_farray
+        !-------------------------------------------------------------------
+
+        !-------------------------------------------------------------------
+        ! water vapor specific humidity at lowest model level
+        CALL exchangeGridRefineField(q_LML,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(q_LML)
+        ALLOCATE(q_LML(idm_util,jdm_util))
+        q_LML = util_farray
+        !-------------------------------------------------------------------
+
+        !-------------------------------------------------------------------
+        ! surface pressure
+        CALL exchangeGridRefineField(psfc,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(psfc)
+        ALLOCATE(psfc(idm_util,jdm_util))
+        psfc = util_farray
+        !-------------------------------------------------------------------
+
+        !-------------------------------------------------------------------
+        ! sea surface temperature
+        CALL exchangeGridRefineField(sst,util_farray,refineRatio,rc)
+        IF(rc/=ESMF_SUCCESS)CALL ESMF_Finalize(rc=rc,endflag=ESMF_END_ABORT)
+        DEALLOCATE(sst)
+        ALLOCATE(sst(idm_util,jdm_util))
+        sst = util_farray
+        !-------------------------------------------------------------------
+
         DEALLOCATE(util_farray)
 
       ENDIF ! domNum<xg%refinementLevel
@@ -884,18 +1118,24 @@ DO domNum = 2,xg % refinementLevel
 
     ! Patch nest on XG:
     CALL exchangeGridPatchNest(1,2,1,u10,ic,jc,rc)  ! u10 for UMWM
-    CALL exchangeGridPatchNest(2,2,1,v10,ic,jc,rc)  ! u10 for UMWM
+    CALL exchangeGridPatchNest(2,2,1,v10,ic,jc,rc)  ! v10 for UMWM
     CALL exchangeGridPatchNest(3,2,1,rhoa,ic,jc,rc) ! rhoa for UMWM
     CALL exchangeGridPatchNest(1,3,1,t2,ic,jc,rc)   ! airtmp for HYCOM
     CALL exchangeGridPatchNest(2,3,1,q2,ic,jc,rc)   ! vapmix for HYCOM
     CALL exchangeGridPatchNest(7,3,1,wspd,ic,jc,rc) ! wndspd for HYCOM
+    CALL exchangeGridPatchNest(6,2,1,z_LML,ic,jc,rc)! z_LML to spray via UMWM
+    CALL exchangeGridPatchNest(7,2,1,wspd_LML,ic,jc,rc)! wspd_LML to spray via UMWM
+    CALL exchangeGridPatchNest(8,2,1,theta_LML,ic,jc,rc)! theta_LML to spray via UMWM
+    CALL exchangeGridPatchNest(9,2,1,q_LML,ic,jc,rc)! q_LML to spray via UMWM
+    CALL exchangeGridPatchNest(10,2,1,psfc,ic,jc,rc)! psfc to spray via UMWM
+    CALL exchangeGridPatchNest(11,2,1,sst,ic,jc,rc) ! sst to spray via UMWM
     !================================================================>
 
     IF(localPet == 0)THEN
       DEALLOCATE(lon,lat)
     ENDIF
 
-    DEALLOCATE(u10,v10,t2,q2,wspd,rhoa)
+    DEALLOCATE(u10,v10,t2,q2,wspd,rhoa,z_LML,u_LML,v_LML,wspd_LML,theta_LML,w_LML,q_LML,psfc,sst)
 
   ENDIF ! wrfDomExists(domNum)
 ENDDO ! domNum=2,xg%maxDomains

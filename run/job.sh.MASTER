@@ -1,16 +1,13 @@
 #!/bin/sh
 #
 # Specify job name
-#$ -N my_run
+#$ -N war_rig
 #
 # Pass all current environment variables to the job
 #$ -V
 #
-# Specify which nodes to use.
-#$ -q all.q@o1 #,all.q@o2,all.q@o3,all.q@o4
-#
 # Specify parallel environment (mpi or smp) and number of parallel processes
-#$ -pe mpi 24
+#$ -pe mpi 96
 #
 # Verify options and abort if there is an error
 #$ -w e
@@ -24,4 +21,4 @@
 
 ulimit -s unlimited 
 # run the model 
-/usr/bin/time -v mpiexec  -n 24 ./uwincm
+time mpiexec  -n 96 ./uwincm

@@ -17,7 +17,7 @@ TYPE(griddedComponent),DIMENSION(:),ALLOCATABLE,TARGET :: gc
 TYPE(griddedComponent),POINTER :: thisgc => NULL()
 
 INTEGER,PARAMETER :: ngc          = 3  ! Number of gridded components
-INTEGER,PARAMETER :: maxNumFields = 10 ! Maximum number of exchange fields
+INTEGER,PARAMETER :: maxNumFields = 12 ! Maximum number of exchange fields
 
 LOGICAL :: atmosphere,waves,ocean
 
@@ -30,8 +30,15 @@ INTEGER :: vectorStressLimiter
 LOGICAL :: oceanStressFromWaves
 LOGICAL :: oceanAdvectsWaves
 LOGICAL :: waveCurrentInteraction
+LOGICAL :: sprayMediatedHeatFluxes
 REAL(KIND=ESMF_KIND_R8) :: vconvAtmosphere
 REAL(KIND=ESMF_KIND_R8) :: vconvOcean
+
+! Spray namelist inputs
+CHARACTER(LEN=ESMF_MAXSTR) :: SSGF_name
+REAL(KIND=ESMF_KIND_R4) :: SSGF_sourcestrength
+LOGICAL :: spraySubgridFeedback
+LOGICAL :: waitToStartSpray
 
 LOGICAL,DIMENSION(ngc) :: modelIsEnabled    = .FALSE.
 LOGICAL,DIMENSION(ngc) :: componentIsActive = .FALSE.
@@ -77,8 +84,8 @@ INTEGER,DIMENSION(ngc,ngc),PARAMETER :: numImpFields = RESHAPE &
 !                            ^   ^   ^
 !                  ImpField  |   |   |
 !                            |   |   |    !  From
-                         ([  0,  5, 10, & ! <---- A
-                             4,  0,  2, & ! <---- W
+                         ([  0, 12, 10, & ! <---- A
+                             9,  0,  2, & ! <---- W
                              3,  3,  0],& ! <---- O
 !
                      [ngc,ngc]) ! Reshape to 3x3 matrix
@@ -113,17 +120,17 @@ TYPE(ESMF_FieldBundle),DIMENSION(1) :: fieldBundleList
 
 ! Fill in field names in this table whenever new fields are added to coupler communication:
 CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(maxNumFields,ngc,ngc),PARAMETER :: impFieldName = RESHAPE(&
-['------','------','------','------','------','------','------','------','------','------',& !    / 
- 'u10   ','v10   ','rhoa  ','psim  ','rmol  ','------','------','------','------','------',& ! W from A
- 'airtmp','vapmix','shwflx','radflx','precip','surtmp','wndspd','tauewd','taunwd','mslprs',& ! O from A
+['------','------','------','------','------','------','------','------','------','------','------','------',& !    / 
+ 'u10   ','v10   ','rhoa  ','psim  ','rmol  ','z_LML ','wspLML','th_LML','q_LML ','psfc  ','sst   ','------',& ! W from A
+ 'airtmp','vapmix','shwflx','radflx','precip','surtmp','wndspd','tauewd','taunwd','mslprs','------','------',& ! O from A
   
- 'taux_A','tauy_A','ust   ','vst   ','------','------','------','------','------','------',& ! A from W
- '------','------','------','------','------','------','------','------','------','------',& !    / 
- 'taux_O','tauy_O','------','------','------','------','------','------','------','------',& ! O from W
+ 'taux_A','tauy_A','ust   ','vst   ','eps   ','ustar ','swh   ','dcp   ','mss   ','------','------','------',& ! A from W
+ '------','------','------','------','------','------','------','------','------','------','------','------',& !    / 
+ 'taux_O','tauy_O','------','------','------','------','------','------','------','------','------','------',& ! O from W
 
- 'sst   ','ue    ','ve    ','------','------','------','------','------','------','------',& ! A from O
- 'uc    ','vc    ','rhow  ','------','------','------','------','------','------','------',& ! W from O
- '------','------','------','------','------','------','------','------','------','------'],& !    /
+ 'sst   ','ue    ','ve    ','------','------','------','------','------','------','------','------','------',& ! A from O
+ 'uc    ','vc    ','rhow  ','------','------','------','------','------','------','------','------','------',& ! W from O
+ '------','------','------','------','------','------','------','------','------','------','------','------'],& !    /
 [maxNumFields,ngc,ngc])
 
 ! Evaluate this at the beginning of main_driver:
@@ -138,6 +145,20 @@ REAL   (KIND=ESMF_KIND_R4),DIMENSION(:,:),  POINTER :: farrayPtr2DR4 => NULL()
 REAL   (KIND=ESMF_KIND_R8),DIMENSION(:,:),  POINTER :: farrayPtr2DR8 => NULL()   
 REAL   (KIND=ESMF_KIND_R4),DIMENSION(:,:,:),POINTER :: farrayPtr3DR4 => NULL()
 REAL   (KIND=ESMF_KIND_R8),DIMENSION(:,:,:),POINTER :: farrayPtr3DR8 => NULL()   
+
+! Modify the items below whenever new 2D auxiliary fields are added.  These are fields 
+! that are not passed between model components but that are created on the exchange grid 
+! and passed to model components.
+INTEGER,PARAMETER :: numXGAuxFields2D = 13 ! 2-D auxiliary fields on exchange grid
+INTEGER,PARAMETER :: numWRFAuxFields2D = 13 ! 2-D auxiliary fields on GC1 grid
+CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(numXGAuxFields2D),PARAMETER :: &
+    XGauxField2DName  = ['dHS1spr','dHL1spr','HTspr','HSspr','HRspr','HLspr', &
+                         'alpha_S','beta_S','beta_L','gamma_H','delt_spr','delq_spr','Mspr']
+CHARACTER(LEN=ESMF_MAXSTR),DIMENSION(numWRFAuxFields2D),PARAMETER :: &
+    WRFauxField2DName = ['dHS1spr','dHL1spr','HTspr','HSspr','HRspr','HLspr', &
+                         'alpha_S','beta_S','beta_L','gamma_H','delt_spr','delq_spr','Mspr']
+REAL(KIND=ESMF_KIND_R4),DIMENSION(numWRFAuxFields2D),PARAMETER :: indxAuxField2D_XG2WRF &
+        = [1,2,3,4,5,6,7,8,9,10,11,12,13]    ! Indices of XG auxFields mapped to WRF auxFields
 
 !==============================================================================!
 ENDMODULE UWIN_global

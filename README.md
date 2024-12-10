@@ -1,33 +1,24 @@
-# Unified Wave INterface - Coupled Model (UWIN-CM), Version 1.0
+## Unified Wave INterface - Coupled Model (UWIN-CM)
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
-developed by Prof. Shuyi S. Chen and Milan Curcic and maintained by Brandon Kerns since 2017.
-
-Several others have contributed improvements to the model code, including Dalton Kai Sasaki, Benjamin Barr, and Ajda Savarin.
-
-**This code is being transferred to the UWIN-CM group on GitHub.**
-
-This public release repository is copied over from the private development version (tag: 1.0, March 2023). It tracks the major version changes to UWIN-CM, and it also has some version tags that are specific to publications.
-
-Note: The development repository uses submodules for the UMWM (wave model) code. This version has all the submodules "flattened," i.e., included directly in the repository. Therefore, it is not necessary to use the --recursive option when cloning it. The instructions below have two changes from the development repo:
-- No recursive flags.
-- The repository link is changed from Gitlab to Github.
-
+developed by Prof. Shuyi S. Chen and Milan Curcic.
 
 ## Getting started
 
 ### Getting the source code
 
-The *master* branch is the most stable and tested.
-The *dev* branch has more updates and features, but may have bugs.
-
-In order to ensure that you're getting the full content of any submodules, use `-b dev` when cloning the dev branch.
-
-#### -- Checking out the master branch --
+If you're using an SSH token to authenticate with GitLab, 
 clone the repo like this:
 
 ```
-git clone --recursive git@github.com:uwincm/uwincm-public.git
+git clone --recursive git@gitlab.com:uwincm/uwincm.git
+```
+
+Otherwise, if you're using a username/password method to authenticate,
+clone the repo like this:
+
+```
+git clone --recursive https://gitlab.com/uwincm/uwincm.git
 ```
 
 ### Setting up the environment
@@ -47,15 +38,13 @@ source env/set_env_<platform>.sh
 The environment scripts must be sourced from the top-level directory.
 Currently only bash shell is supported.
 
-
 ### Building the model
-First copy Makefile.MASTER to Makefile. Select the versions of WRF, HYCOM and UMWM that you will be using.
-
+First copy Makefile.MASTER to Makefile.
 
 To build UWIN-CM, you need to build ESMF, WRF, UMWM, HYCOM, and UWIN. 
-WRF, UMWM, and HYCOM can be built in any order, but ESMF has to be built first,
-and UWIN has to be built last. I usually do ESMF first, then immediately WRF since it take the longest. While WRF is compiling, I set things up for HYCOM and UMWM and compile them. WPS is now included, and it also requires WRF to be compiled first. Building UWIN results in new executable `uwincm`.
-
+WRF, UMWM, and HYCOM can be built in any order, but ESMF has to be build first,
+and UWIN has to be build last. Building UWIN results in new executable `uwincm`.
+Edit the `Makefile` for the desired versions of each model component.
 
 #### Compile ESMF
 
@@ -65,125 +54,14 @@ make esmf
 ```
 or `make esmf_info` to display compile-time options for building ESMF.
 
-
 #### Compile WRF
 
-Choose appropriate verion (3.6.1, 3.7.1, 3.8.1, 3.9, or one of the modified 3.9 versions) and run the configure script in the respective WRF directory. On orca, the compiling option selection that works is 15. In general, for the nesting option we select 3 for vortex following. These are the options that we are presented with on orca:
+Choose appropriate verions (3.6.1, 3.7.1, or 3.8.1) and run the configure
+script in the respective WRF directory (e.g. `src/components/WRFV3.8.1`).
+Once configured, build WRF by typing from the top-level directory:
 ```
-Please select from among the following Linux x86_64 options:
-
-  1. (serial)   2. (smpar)   3. (dmpar)   4. (dm+sm)   PGI (pgf90/gcc)
-  5. (serial)   6. (smpar)   7. (dmpar)   8. (dm+sm)   PGI (pgf90/pgcc): SGI MPT
-  9. (serial)  10. (smpar)  11. (dmpar)  12. (dm+sm)   PGI (pgf90/gcc): PGI accelerator
- 13. (serial)  14. (smpar)  15. (dmpar)  16. (dm+sm)   INTEL (ifort/icc)
-                                         17. (dm+sm)   INTEL (ifort/icc): Xeon Phi (MIC architecture)
- 18. (serial)  19. (smpar)  20. (dmpar)  21. (dm+sm)   INTEL (ifort/icc): Xeon (SNB with AVX mods)
- 22. (serial)  23. (smpar)  24. (dmpar)  25. (dm+sm)   INTEL (ifort/icc): SGI MPT
- 26. (serial)  27. (smpar)  28. (dmpar)  29. (dm+sm)   INTEL (ifort/icc): IBM POE
- 30. (serial)               31. (dmpar)                PATHSCALE (pathf90/pathcc)
- 32. (serial)  33. (smpar)  34. (dmpar)  35. (dm+sm)   GNU (gfortran/gcc)
- 36. (serial)  37. (smpar)  38. (dmpar)  39. (dm+sm)   IBM (xlf90_r/cc_r)
- 40. (serial)  41. (smpar)  42. (dmpar)  43. (dm+sm)   PGI (ftn/gcc): Cray XC CLE
- 44. (serial)  45. (smpar)  46. (dmpar)  47. (dm+sm)   CRAY CCE (ftn $(NOOMP)/cc): Cray XE and XC
- 48. (serial)  49. (smpar)  50. (dmpar)  51. (dm+sm)   INTEL (ftn/icc): Cray XC
- 52. (serial)  53. (smpar)  54. (dmpar)  55. (dm+sm)   PGI (pgf90/pgcc)
- 56. (serial)  57. (smpar)  58. (dmpar)  59. (dm+sm)   PGI (pgf90/gcc): -f90=pgf90
- 60. (serial)  61. (smpar)  62. (dmpar)  63. (dm+sm)   PGI (pgf90/pgcc): -f90=pgf90
- 64. (serial)  65. (smpar)  66. (dmpar)  67. (dm+sm)   INTEL (ifort/icc): HSW/BDW
- 68. (serial)  69. (smpar)  70. (dmpar)  71. (dm+sm)   INTEL (ifort/icc): KNL MIC
- 72. (serial)  73. (smpar)  74. (dmpar)  75. (dm+sm)   FUJITSU (frtpx/fccpx): FX10/FX100 SPARC64 IXfx/Xlfx
-
-Enter selection [1-75] : 15
-------------------------------------------------------------------------
-Compile for nesting? (1=basic, 2=preset moves, 3=vortex following) [default 1]: 3
+make wrf
 ```
-
-Check that the configure command was successful. It should produce output ending like this:
-```
-Settings listed above are written to configure.wrf.
-If you wish to change settings, please edit that file.
-If you wish to change the default options, edit the file:
-     arch/configure_new.defaults
-NetCDF users note:
- This installation of NetCDF supports large file support.  To DISABLE large file
- support in NetCDF, set the environment variable WRFIO_NCD_NO_LARGE_FILE_SUPPORT
- to 1 and run configure again. Set to any other value to avoid this message.
-
-
-Testing for NetCDF, C and Fortran compiler
-
-This installation of NetCDF is 64-bit
-                 C compiler is 64-bit
-           Fortran compiler is 64-bit
-              It will build in 64-bit
-```
-Then, compile using `compile em_real`.
-
-For example:
-```
-cd src/components/WRFV3.9
-./configure
-nohup compile em_real >& log.compile &
-```
-When the compilation is successful, the end of the output should look like this:
-```
-==========================================================================
-build started:   Mon 06 Feb 2023 04:27:46 PM PST
-build completed: Mon 06 Feb 2023 05:07:34 PM PST
-
---->                  Executables successfully built                  <---
-
--rwxr-xr-x 1 bkerns atgstaff 44771184 Feb  6 17:07 main/ndown.exe
--rwxr-xr-x 1 bkerns atgstaff 44839552 Feb  6 17:07 main/real.exe
--rwxr-xr-x 1 bkerns atgstaff 44159040 Feb  6 17:07 main/tc.exe
--rwxr-xr-x 1 bkerns atgstaff 55542792 Feb  6 17:06 main/wrf.exe
-
-==========================================================================
-```
-
-
-Note: Running "make wrf" from the main uwincm directory will also work for the `compile em_real` step. 
-
-BUT DO NOT RUN "make wrf" IN THE WRF DIRECTORY!!!
-
-
-#### Compile WPS.
-
-For generating WRF input files, you may need to compile a fresh version of the WRF Preprocessing System (WPS). The repository provides WPSV3.9.1. For other versions, e.g., 4.2 which is needed for GFS/CFS and ECMWF realtime forecast data, feel free to download from [https://github.com/wrf-model/WPS](https://github.com/wrf-model/WPS) and extract another version of WPS under the src/components directory.
-
-Note: Compiling WPS depends on WRF having been compiled in the above step. WPS uses some libraries created by WRF.
-
-Here is how to compile a fresh version of WPS:
-
-1. Get into the WPS directory. e.g., `cd src/components/WPS-3.9.1`.
-2. Run the ./configure step. The serial options are probably fine. I chose
-```  17.  Linux x86_64, Intel compiler    (serial)```
-But the gfortran one would probably work (but run slower):
-```   1.  Linux x86_64, gfortran    (serial)```
-3. Edit the WRF directory in the configure.wps file. e.g.,`WRF_DIR			=	../WRFV3.9`.
-4. Run `./compile` to compile it. If successful, you should see WPS executables with links like this:
-```
-$ ls -l *.exe
-lrwxrwxrwx 1 bkerns atgstaff 23 Feb  6 17:44 geogrid.exe -> geogrid/src/geogrid.exe
-lrwxrwxrwx 1 bkerns atgstaff 23 Feb  6 17:46 metgrid.exe -> metgrid/src/metgrid.exe
-lrwxrwxrwx 1 bkerns atgstaff 21 Feb  6 17:45 ungrib.exe -> ungrib/src/ungrib.exe
-
-```
-You can also check whether the WPS utility executables were created:
-```
-$ ls -l util/*.exe
-lrwxrwxrwx 1 bkerns atgstaff 16 Feb  6 17:46 util/avg_tsfc.exe -> src/avg_tsfc.exe
-lrwxrwxrwx 1 bkerns atgstaff 20 Feb  6 17:46 util/calc_ecmwf_p.exe -> src/calc_ecmwf_p.exe
-lrwxrwxrwx 1 bkerns atgstaff 25 Feb  6 17:46 util/g1print.exe -> ../ungrib/src/g1print.exe
-lrwxrwxrwx 1 bkerns atgstaff 25 Feb  6 17:46 util/g2print.exe -> ../ungrib/src/g2print.exe
-lrwxrwxrwx 1 bkerns atgstaff 19 Feb  6 17:46 util/height_ukmo.exe -> src/height_ukmo.exe
-lrwxrwxrwx 1 bkerns atgstaff 14 Feb  6 17:46 util/int2nc.exe -> src/int2nc.exe
-lrwxrwxrwx 1 bkerns atgstaff 16 Feb  6 17:46 util/mod_levs.exe -> src/mod_levs.exe
-lrwxrwxrwx 1 bkerns atgstaff 23 Feb  6 17:46 util/rd_intermediate.exe -> src/rd_intermediate.exe
-```
-
-NOTE: The script util/plotgrids_new_png.ncl has been added for this repo. It is not originally provided with WPS.
-
 
 #### Compile UMWM
 
@@ -191,7 +69,6 @@ From the top-level directory, type:
 ```
 make umwm
 ```
-
 
 #### Compile HYCOM
 
@@ -213,12 +90,6 @@ make uwincm
 
 ## Further reading
 
-* Additional README files in this repository:
-     + [UMWM3](https://gitlab.com/uwincm/umwm3/-/blob/dev/README.md)
-     + [wrf_input](wrf_input/README.md) directory
-     + [run](run/README.md) directory
-
-* This repository has a [Wiki](https://gitlab.com/uwincm/uwincm/-/wikis/home) associated with it.
 * [UWIN-CM gitbook documentation](https://www.gitbook.com/book/milancurcic/uwincm-manual/details)
 
 ## Publications

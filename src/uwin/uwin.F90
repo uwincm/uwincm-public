@@ -9,6 +9,7 @@ PROGRAM uwin
 !
 ! REVISION HISTORY:
 !
+! 2020-01-09 :: Changes to allow for spray-mediated heat flux calculation
 ! 2016-09-28 :: Changes to uwin.nml
 ! 2014-06-01 :: Added atmospheric stability coupling for wave growth
 ! 2014-01-03 :: Added vortex force coupling in UWIN_physics module
@@ -74,7 +75,11 @@ NAMELIST /COUPLER/ sstFromOcean,             &
                    windStressFromWavesVector,&
                    oceanStressFromWaves,     &
                    oceanAdvectsWaves,        &
-                   waveCurrentInteraction
+                   waveCurrentInteraction,   &
+                   sprayMediatedHeatFluxes
+
+! Spray namelist inputs
+NAMELIST /SPRAY/ SSGF_name,SSGF_sourcestrength,spraySubgridFeedback,waitToStartSpray
 
 ! Convective velocity switches
 NAMELIST /VCONV/ vconvAtmosphere,vconvOcean
@@ -112,6 +117,7 @@ READ(UNIT=11,NML=DIMENSIONS)
 READ(UNIT=11,NML=REFINEMENT)
 READ(UNIT=11,NML=TIME)
 READ(UNIT=11,NML=COUPLER)
+READ(UNIT=11,NML=SPRAY)
 !READ(UNIT=11,NML=VCONV)
 CLOSE(UNIT=11)
 
@@ -159,8 +165,8 @@ DO n = 1,ngc
 
     ! Create GriddedComponent:
     CALL gc(n) % create(numGriddedComponents = 3,              &
-                        numImpFields         = 10,             &
-                        numExpFields         = 10,             &
+                        numImpFields         = 12,             &
+                        numExpFields         = 12,             &
                         id                   = n,              &
                         name                 = gridCompName(n),&
                         rc                   = rc)

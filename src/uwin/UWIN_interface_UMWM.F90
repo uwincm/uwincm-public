@@ -483,7 +483,8 @@ USE UMWM_module,ONLY:istart,iend,mi,ni,mm,nm,&
                      taux_form,tauy_form,    &
                      taux_skin,tauy_skin,    &
                      taux_ocntop,tauy_ocntop,&
-                     taux_snl,tauy_snl
+                     taux_snl,tauy_snl,      &
+                     epsx_ocn,epsy_ocn,ustar,ht,dcp,mss
 
 USE UMWM_stokes,ONLY:us,vs,km => lm
 
@@ -492,12 +493,15 @@ INTEGER,INTENT(OUT),OPTIONAL :: rc
 INTEGER :: i,j,k,m,n
 
 REAL(KIND=ESMF_KIND_R4),DIMENSION(isw:iew,jsw:jew) :: umwm_taux,umwm_tauy
+REAL(KIND=ESMF_KIND_R4),DIMENSION(isw:iew,jsw:jew) :: umwm_epsx,umwm_epsy,umwm_eps,umwm_ustar,&
+                                                      umwm_swh,umwm_dcp,umwm_mss
 
 INTEGER,SAVE :: waveTimeStep = 1
 
 !===============================================================================
 
-! 1) First export wind stress (skin + form drag. for ATM):
+! 1) First export wind stress (skin + form drag. for ATM) and fields required
+!    for spray calculations:
 
 ! Must initialize to 0 first, because the loop below fills in only active 
 ! wave model points (sea-points minus domain edges)
@@ -505,11 +509,24 @@ IF(modelIsEnabled(1))THEN
   
   umwm_taux = 0.
   umwm_tauy = 0.
+  umwm_epsx = 0.
+  umwm_epsy = 0.
+  umwm_eps  = 0.
+  umwm_ustar = 0.
+  umwm_swh  = 0.
+  umwm_dcp  = 0.
+  umwm_mss  = 0.
   
   ! Remap from UMWM space:
   DO i = istart,iend
     umwm_taux(mi(i),ni(i)) = taux_form(i)+taux_skin(i)
     umwm_tauy(mi(i),ni(i)) = tauy_form(i)+tauy_skin(i)
+    umwm_epsx(mi(i),ni(i)) = epsx_ocn(i)
+    umwm_epsy(mi(i),ni(i)) = epsy_ocn(i)
+    umwm_ustar(mi(i),ni(i)) = ustar(i)
+    umwm_swh(mi(i),ni(i)) = ht(i)
+    umwm_dcp(mi(i),ni(i)) = dcp(i)
+    umwm_mss(mi(i),ni(i)) = mss(i)
   ENDDO
   
   ! Fix edges (which are 0 from UMWM):
@@ -520,6 +537,24 @@ IF(modelIsEnabled(1))THEN
     umwm_tauy(1,:)   = umwm_tauy(2,:)
     umwm_tauy(:,1)   = umwm_tauy(:,2) 
     umwm_tauy(:,jew) = umwm_tauy(:,jew-1)
+    umwm_epsx(1,:)   = umwm_epsx(2,:)
+    umwm_epsx(:,1)   = umwm_epsx(:,2) 
+    umwm_epsx(:,jew) = umwm_epsx(:,jew-1)
+    umwm_epsy(1,:)   = umwm_epsy(2,:)
+    umwm_epsy(:,1)   = umwm_epsy(:,2) 
+    umwm_epsy(:,jew) = umwm_epsy(:,jew-1)
+    umwm_ustar(1,:)   = umwm_ustar(2,:)
+    umwm_ustar(:,1)   = umwm_ustar(:,2) 
+    umwm_ustar(:,jew) = umwm_ustar(:,jew-1)
+    umwm_swh(1,:)   = umwm_swh(2,:)
+    umwm_swh(:,1)   = umwm_swh(:,2) 
+    umwm_swh(:,jew) = umwm_swh(:,jew-1)
+    umwm_dcp(1,:)   = umwm_dcp(2,:)
+    umwm_dcp(:,1)   = umwm_dcp(:,2) 
+    umwm_dcp(:,jew) = umwm_dcp(:,jew-1)
+    umwm_mss(1,:)   = umwm_mss(2,:)
+    umwm_mss(:,1)   = umwm_mss(:,2) 
+    umwm_mss(:,jew) = umwm_mss(:,jew-1)
   ELSEIF(localPet == petCount-1)THEN
     umwm_taux(iew,:) = umwm_taux(iew-1,:)
     umwm_taux(:,1)   = umwm_taux(:,2) 
@@ -527,17 +562,52 @@ IF(modelIsEnabled(1))THEN
     umwm_tauy(iew,:) = umwm_tauy(iew-1,:)
     umwm_tauy(:,1)   = umwm_tauy(:,2) 
     umwm_tauy(:,jew) = umwm_tauy(:,jew-1)
+    umwm_epsx(iew,:) = umwm_epsx(iew-1,:)
+    umwm_epsx(:,1)   = umwm_epsx(:,2) 
+    umwm_epsx(:,jew) = umwm_epsx(:,jew-1)
+    umwm_epsy(iew,:) = umwm_epsy(iew-1,:)
+    umwm_epsy(:,1)   = umwm_epsy(:,2) 
+    umwm_epsy(:,jew) = umwm_epsy(:,jew-1)
+    umwm_ustar(iew,:) = umwm_ustar(iew-1,:)
+    umwm_ustar(:,1)   = umwm_ustar(:,2) 
+    umwm_ustar(:,jew) = umwm_ustar(:,jew-1)
+    umwm_swh(iew,:) = umwm_swh(iew-1,:)
+    umwm_swh(:,1)   = umwm_swh(:,2) 
+    umwm_swh(:,jew) = umwm_swh(:,jew-1)
+    umwm_dcp(iew,:) = umwm_dcp(iew-1,:)
+    umwm_dcp(:,1)   = umwm_dcp(:,2) 
+    umwm_dcp(:,jew) = umwm_dcp(:,jew-1)
+    umwm_mss(iew,:) = umwm_mss(iew-1,:)
+    umwm_mss(:,1)   = umwm_mss(:,2) 
+    umwm_mss(:,jew) = umwm_mss(:,jew-1)
   ELSE
     umwm_taux(:,1)   = umwm_taux(:,2) 
     umwm_taux(:,jew) = umwm_taux(:,jew-1)
     umwm_tauy(:,1)   = umwm_tauy(:,2) 
     umwm_tauy(:,jew) = umwm_tauy(:,jew-1)
+    umwm_epsx(:,1)   = umwm_epsx(:,2) 
+    umwm_epsx(:,jew) = umwm_epsx(:,jew-1)
+    umwm_epsy(:,1)   = umwm_epsy(:,2) 
+    umwm_epsy(:,jew) = umwm_epsy(:,jew-1)
+    umwm_ustar(:,1)   = umwm_ustar(:,2) 
+    umwm_ustar(:,jew) = umwm_ustar(:,jew-1)
+    umwm_swh(:,1)   = umwm_swh(:,2) 
+    umwm_swh(:,jew) = umwm_swh(:,jew-1)
+    umwm_dcp(:,1)   = umwm_dcp(:,2) 
+    umwm_dcp(:,jew) = umwm_dcp(:,jew-1)
+    umwm_mss(:,1)   = umwm_mss(:,2) 
+    umwm_mss(:,jew) = umwm_mss(:,jew-1)
   ENDIF
 
   gc(2) % expFieldPtr(1,1) % Ptr(:,:) = 0
   gc(2) % expFieldPtr(2,1) % Ptr(:,:) = 0
   gc(2) % expFieldPtr(3,1) % Ptr(:,:) = 0
   gc(2) % expFieldPtr(4,1) % Ptr(:,:) = 0
+  gc(2) % expFieldPtr(5,1) % Ptr(:,:) = 0
+  gc(2) % expFieldPtr(6,1) % Ptr(:,:) = 0
+  gc(2) % expFieldPtr(7,1) % Ptr(:,:) = 0
+  gc(2) % expFieldPtr(8,1) % Ptr(:,:) = 0
+  gc(2) % expFieldPtr(9,1) % Ptr(:,:) = 0
   
   ! Atmospheric stress
   gc(2) % expFieldPtr(1,1) % Ptr(isw:iew,jsw:jew) = umwm_taux(isw:iew,jsw:jew)
@@ -551,6 +621,14 @@ IF(modelIsEnabled(1))THEN
     gc(2) % expFieldPtr(3,1) % Ptr(mi(i),ni(i)) = us(i,1)
     gc(2) % expFieldPtr(4,1) % Ptr(mi(i),ni(i)) = vs(i,1)
   ENDDO
+
+  ! Spray-related fields
+  umwm_eps = SQRT(umwm_epsx**2 + umwm_epsy**2)
+  gc(2) % expFieldPtr(5,1) % Ptr(isw:iew,jsw:jew) = umwm_eps(isw:iew,jsw:jew)
+  gc(2) % expFieldPtr(6,1) % Ptr(isw:iew,jsw:jew) = umwm_ustar(isw:iew,jsw:jew)
+  gc(2) % expFieldPtr(7,1) % Ptr(isw:iew,jsw:jew) = umwm_swh(isw:iew,jsw:jew)
+  gc(2) % expFieldPtr(8,1) % Ptr(isw:iew,jsw:jew) = umwm_dcp(isw:iew,jsw:jew)
+  gc(2) % expFieldPtr(9,1) % Ptr(isw:iew,jsw:jew) = umwm_mss(isw:iew,jsw:jew)
 
 ENDIF
 
