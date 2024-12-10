@@ -1,24 +1,28 @@
-## Unified Wave INterface - Coupled Model (UWIN-CM)
+## Unified Wave INterface - Coupled Model (UWIN-CM), Version 0.9
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
 developed by Prof. Shuyi S. Chen and Milan Curcic.
+
+This public release repository is copied over from the private development version.
+It tracks the major version changes to UWIN-CM, and it also has some version tags
+that are specific to publications.
+
+Note: The development repository uses submodules for the UMWM (wave model) code.
+This version has all the submodules "flattened," i.e., included directly in the
+repository. Therefore, it is not necessary to use the --recursive option when cloning it.
+The instructions below have two changes from the development repo:
+- No recursive flags.
+- The repository link is changed from Gitlab to Github.
+
 
 ## Getting started
 
 ### Getting the source code
 
-If you're using an SSH token to authenticate with GitLab, 
 clone the repo like this:
 
 ```
-git clone --recursive git@gitlab.com:uwincm/uwincm.git
-```
-
-Otherwise, if you're using a username/password method to authenticate,
-clone the repo like this:
-
-```
-git clone --recursive https://gitlab.com/uwincm/uwincm.git
+git clone git@github.com:uwincm/uwincm-public.git
 ```
 
 ### Setting up the environment
@@ -26,7 +30,7 @@ git clone --recursive https://gitlab.com/uwincm/uwincm.git
 The `env` directory contains scripts for setting up the environment
 on a specific compute system. If the script for the desired system
 is not available, you can create one and contribute it to the repo,
-or request it by [opening an issue](https://gitlab.com/uwincm/uwincm/issues/new).
+or request it by [opening an issue](https://github.com/uwincm/uwincm-public/issues/new).
 
 Set up your environment by typing:
 ```
