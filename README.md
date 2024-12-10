@@ -1,24 +1,25 @@
-## Unified Wave INterface - Coupled Model (UWIN-CM)
+## Unified Wave INterface - Coupled Model (UWIN-CM), Ben Barr's Spray Version
 
 This is the source code repository for the Unified Wave INterface - Coupled Model (UWIN-CM)
-developed by Prof. Shuyi S. Chen and Milan Curcic.
+developed by Prof. Shuyi S. Chen and Milan Curcic. Benjamin Bar modified the code to incorporate sea spray.
+
+This public release repository is copied over from the private development version (tag: 1.0, March 2023). It tracks the major version changes to UWIN-CM, and it also has some version tags that are specific to publications.
+
+Note: The development repository uses submodules for the UMWM (wave model) code. This version has all the submodules "flattened," i.e., included directly in the repository. Therefore, it is not necessary to use the --recursive option when cloning it. The instructions below have two changes from the development repo:
+- No recursive flags.
+- The repository link is changed from Gitlab to Github.
+
+The spray code is included here as a separate branch from main. It is expected to be merged into the main branch for Version 2.0 release.
+
 
 ## Getting started
 
 ### Getting the source code
 
-If you're using an SSH token to authenticate with GitLab, 
-clone the repo like this:
+Clone the repo (spray branch) like this:
 
 ```
-git clone --recursive git@gitlab.com:uwincm/uwincm.git
-```
-
-Otherwise, if you're using a username/password method to authenticate,
-clone the repo like this:
-
-```
-git clone --recursive https://gitlab.com/uwincm/uwincm.git
+git clone git@github.com:uwincm/uwincm-public.git -b spray
 ```
 
 ### Setting up the environment
